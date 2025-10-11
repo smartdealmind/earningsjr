@@ -1,4 +1,5 @@
-import { Component, ReactNode } from 'react'
+import { Component } from 'react'
+import type { ReactNode } from 'react'
 import { toast } from 'sonner'
 
 export class ErrorBoundary extends Component<{children:ReactNode}, {hasError:boolean}> {
