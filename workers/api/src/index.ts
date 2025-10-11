@@ -588,6 +588,253 @@ app.post('/exchange/quote', async (c) => {
   return c.json({ ok:true, ...result });
 });
 
+// --- GET current rules ---
+app.get('/exchange/rules', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const r = requireRole(c, ['parent','helper']); if (r) return r;
+  const userId = c.get('userId');
+  const familyId = await getUserFamilyId(c, userId);
+  const row = await c.env.DB.prepare(
+    `SELECT points_per_currency, currency_code, rounding, weekly_allowance_points, required_task_min_pct
+     FROM ExchangeRule WHERE family_id=?`
+  ).bind(familyId).first();
+  return c.json({ ok: true, rules: row || null });
+});
+
+// --- PATCH rules ---
+app.patch('/exchange/rules', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const r = requireRole(c, ['parent']); if (r) return r;
+  const userId = c.get('userId');
+  const familyId = await getUserFamilyId(c, userId);
+  const body = await c.req.json<{
+    points_per_currency?: number;
+    currency_code?: string;
+    rounding?: 'nearest'|'down'|'up';
+    weekly_allowance_points?: number;
+    required_task_min_pct?: number;
+  }>();
+  const now = Date.now();
+  const current = await c.env.DB.prepare(
+    `SELECT * FROM ExchangeRule WHERE family_id=?`
+  ).bind(familyId).first<any>();
+  if (!current) return c.json({ ok:false, error:'exchange_rule_missing' }, 400);
+
+  const next = {
+    points_per_currency: body.points_per_currency ?? current.points_per_currency,
+    currency_code: body.currency_code ?? current.currency_code,
+    rounding: body.rounding ?? current.rounding,
+    weekly_allowance_points: body.weekly_allowance_points ?? current.weekly_allowance_points,
+    required_task_min_pct: body.required_task_min_pct ?? current.required_task_min_pct
+  };
+  await c.env.DB.prepare(
+    `UPDATE ExchangeRule SET points_per_currency=?, currency_code=?, rounding=?, weekly_allowance_points=?, required_task_min_pct=?, updated_at=? WHERE family_id=?`
+  ).bind(next.points_per_currency, next.currency_code, next.rounding, next.weekly_allowance_points, next.required_task_min_pct, now, familyId).run();
+
+  return c.json({ ok:true, rules: next });
+});
+
+// --- Required-chores unlock eligibility ---
+app.get('/eligibility', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const userId = c.get('userId');
+  const role = c.get('role');
+  const kidId = c.req.query('kid') || (role === 'kid' ? userId : null);
+  if (!kidId) return c.json({ ok:false, error:'kid_required' }, 400);
+
+  const myFam = await getUserFamilyId(c, role === 'kid' ? kidId : userId);
+  const kidFam = await c.env.DB.prepare(`SELECT family_id FROM KidProfile WHERE user_id=?`).bind(kidId).first<any>();
+  if (!kidFam || kidFam.family_id !== myFam) return c.json({ ok:false, error:'wrong_family' }, 403);
+
+  const ex = await c.env.DB.prepare(
+    `SELECT required_task_min_pct FROM ExchangeRule WHERE family_id=?`
+  ).bind(myFam).first<{ required_task_min_pct: number }>();
+  const minPct = (ex as any)?.required_task_min_pct ?? 0;
+
+  const since = Date.now() - 7*24*60*60*1000;
+
+  // Count approved chores in window
+  const rows = await c.env.DB.prepare(
+    `SELECT is_required, COUNT(*) AS n
+     FROM Chore
+     WHERE kid_user_id=? AND status='approved' AND created_at >= ?
+     GROUP BY is_required`
+  ).bind(kidId, since).all<{ is_required: number, n: number }>();
+  let req = 0, total = 0;
+  for (const r of (rows.results ?? [])) {
+    total += r.n; if (r.is_required === 1) req += r.n;
+  }
+  const pct = total ? Math.round((req / total) * 100) : 0;
+  const eligible = pct >= minPct;
+
+  // Also surface outstanding required chores (open/claimed/submitted) for nudges
+  const outstanding = await c.env.DB.prepare(
+    `SELECT id,title,status FROM Chore
+     WHERE kid_user_id=? AND is_required=1 AND status IN ('open','claimed','submitted')
+     ORDER BY created_at DESC LIMIT 20`
+  ).bind(kidId).all();
+
+  return c.json({ ok:true, eligible, ratio: { required:req, total, pct }, min_required_pct: minPct, outstanding: outstanding.results ?? [] });
+});
+
+// --- Create goal ---
+app.post('/goals', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const userId = c.get('userId'); const role = c.get('role');
+  const body = await c.req.json<{ kid_user_id?: string; title: string; target_amount_cents: number }>();
+  const kidId = role === 'kid' ? userId : body.kid_user_id;
+  if (!kidId) return c.json({ ok:false, error:'kid_required' }, 400);
+
+  // same-family guard for parent
+  if (role !== 'kid') {
+    const myFam = await getUserFamilyId(c, userId);
+    const kidFam = await c.env.DB.prepare(`SELECT family_id FROM KidProfile WHERE user_id=?`).bind(kidId).first<any>();
+    if (!kidFam || kidFam.family_id !== myFam) return c.json({ ok:false, error:'wrong_family' }, 403);
+  }
+
+  const familyId = await getUserFamilyId(c, kidId);
+  const ex = await c.env.DB.prepare(`SELECT points_per_currency,currency_code FROM ExchangeRule WHERE family_id=?`).bind(familyId).first<any>();
+  if (!ex) return c.json({ ok:false, error:'exchange_rule_missing' }, 400);
+
+  const ppc = ex.points_per_currency as number;
+  const target_points = Math.ceil((body.target_amount_cents/100) * ppc);
+  const goalId = uid('gol'); const now = Date.now();
+
+  await c.env.DB.prepare(`
+    INSERT INTO Goal (id,kid_user_id,family_id,title,target_amount_cents,currency_code,target_points,status,created_at)
+    VALUES (?,?,?,?,?,?,?,'active',?)
+  `).bind(goalId, kidId, familyId, body.title, body.target_amount_cents, ex.currency_code, target_points, now).run();
+
+  return c.json({ ok:true, goal_id: goalId, target_points });
+});
+
+// --- Cancel goal ---
+app.post('/goals/:id/cancel', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const userId = c.get('userId'); const role = c.get('role');
+  const id = c.req.param('id');
+
+  const row = await c.env.DB.prepare(`SELECT kid_user_id,family_id,status FROM Goal WHERE id=?`).bind(id).first<any>();
+  if (!row || row.status !== 'active') return c.json({ ok:false, error:'not_found_or_inactive' }, 404);
+
+  // permission
+  if (role === 'kid' && row.kid_user_id !== userId) return c.json({ ok:false, error:'forbidden' }, 403);
+  if (role !== 'kid') {
+    const myFam = await getUserFamilyId(c, userId);
+    if (myFam !== row.family_id) return c.json({ ok:false, error:'wrong_family' }, 403);
+  }
+  await c.env.DB.prepare(`UPDATE Goal SET status='cancelled' WHERE id=?`).bind(id).run();
+  return c.json({ ok:true });
+});
+
+// --- List goals + ETA ---
+app.get('/goals', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const userId = c.get('userId'); const role = c.get('role');
+  const kid = c.req.query('kid') || (role === 'kid' ? userId : null);
+  if (!kid) return c.json({ ok:false, error:'kid_required' }, 400);
+
+  // family guard
+  const myFam = await getUserFamilyId(c, role === 'kid' ? kid : userId);
+  const kidFam = await c.env.DB.prepare(`SELECT family_id, points_balance FROM KidProfile WHERE user_id=?`).bind(kid).first<any>();
+  if (!kidFam || kidFam.family_id !== myFam) return c.json({ ok:false, error:'wrong_family' }, 403);
+
+  const goals = await c.env.DB.prepare(`
+    SELECT id,title,target_amount_cents,currency_code,target_points,status,created_at,achieved_at
+    FROM Goal WHERE kid_user_id=? ORDER BY created_at DESC
+  `).bind(kid).all<any>();
+
+  // avg pts/day from last 14 days
+  const since = Date.now() - 14*24*60*60*1000;
+  const pts = await c.env.DB.prepare(`
+    SELECT SUM(delta_points) AS sum FROM PointsLedger
+    WHERE kid_user_id=? AND delta_points > 0 AND created_at >= ?
+  `).bind(kid, since).first<any>();
+  const earned = pts?.sum || 0;
+  const avgPerDay = Math.max(1, Math.round(earned / 14)); // avoid /0
+
+  // add computed fields
+  const out = (goals.results ?? []).map(g => {
+    const remaining = Math.max(0, g.target_points - kidFam.points_balance);
+    const etaDays = g.status === 'active' ? Math.ceil(remaining / avgPerDay) : null;
+    return { ...g, current_points: kidFam.points_balance, remaining_points: remaining, eta_days: etaDays, avg_pts_per_day: avgPerDay };
+  });
+
+  return c.json({ ok:true, goals: out });
+});
+
+// --- Create request (kid) ---
+app.post('/requests', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const role = c.get('role'); const userId = c.get('userId');
+  if (role !== 'kid') return c.json({ ok:false, error:'for_kid_only' }, 403);
+
+  const body = await c.req.json<{ title: string; description?: string; suggested_points?: number }>();
+  const familyId = await getUserFamilyId(c, userId);
+  const now = Date.now();
+  const id = uid('req');
+
+  await c.env.DB.prepare(`
+    INSERT INTO TaskRequest (id,family_id,kid_user_id,title,description,suggested_points,status,created_at)
+    VALUES (?,?,?,?,?,?,'pending',?)
+  `).bind(id, familyId, userId, body.title, body.description ?? null, body.suggested_points ?? null, now).run();
+
+  return c.json({ ok:true, request_id: id });
+});
+
+// --- List requests (parent scope) or kid sees own ---
+app.get('/requests', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const role = c.get('role'); const userId = c.get('userId');
+  const status = c.req.query('status'); // optional
+  let q = `SELECT id,kid_user_id,title,description,suggested_points,status,created_at,decided_at,decided_by FROM TaskRequest `;
+  const where: string[] = []; const args: any[] = [];
+
+  if (role === 'kid') {
+    where.push(`kid_user_id = ?`); args.push(userId);
+  } else {
+    const fam = await getUserFamilyId(c, userId);
+    where.push(`family_id = ?`); args.push(fam);
+  }
+  if (status) { where.push(`status = ?`); args.push(status); }
+  if (where.length) q += `WHERE ` + where.join(' AND ');
+  q += ` ORDER BY created_at DESC LIMIT 200`;
+
+  const rows = await c.env.DB.prepare(q).bind(...args).all();
+  return c.json({ ok:true, requests: rows.results ?? [] });
+});
+
+// --- Approve/Deny requests (parent/helper) ---
+app.post('/requests/:id/approve', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const r = requireRole(c, ['parent','helper']); if (r) return r;
+  const id = c.req.param('id'); const uid = c.get('userId'); const now = Date.now();
+
+  const row = await c.env.DB.prepare(`SELECT family_id,status FROM TaskRequest WHERE id=?`).bind(id).first<any>();
+  if (!row || row.status !== 'pending') return c.json({ ok:false, error:'not_found_or_not_pending' }, 404);
+
+  const fam = await getUserFamilyId(c, uid);
+  if (fam !== row.family_id) return c.json({ ok:false, error:'wrong_family' }, 403);
+
+  await c.env.DB.prepare(`UPDATE TaskRequest SET status='approved', decided_at=?, decided_by=? WHERE id=?`).bind(now, uid, id).run();
+  return c.json({ ok:true });
+});
+
+app.post('/requests/:id/deny', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const r = requireRole(c, ['parent','helper']); if (r) return r;
+  const id = c.req.param('id'); const uid = c.get('userId'); const now = Date.now();
+
+  const row = await c.env.DB.prepare(`SELECT family_id,status FROM TaskRequest WHERE id=?`).bind(id).first<any>();
+  if (!row || row.status !== 'pending') return c.json({ ok:false, error:'not_found_or_not_pending' }, 404);
+
+  const fam = await getUserFamilyId(c, uid);
+  if (fam !== row.family_id) return c.json({ ok:false, error:'wrong_family' }, 403);
+
+  await c.env.DB.prepare(`UPDATE TaskRequest SET status='denied', decided_at=?, decided_by=? WHERE id=?`).bind(now, uid, id).run();
+  return c.json({ ok:true });
+});
+
 export default {
   fetch: app.fetch,
   scheduled: async (event: ScheduledEvent, env: Bindings, ctx: ExecutionContext) => {
