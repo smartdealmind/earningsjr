@@ -29,8 +29,14 @@ app.get('/healthz', async (c) => {
   ];
 
   try {
-    const vu = await c.env.DB.prepare('PRAGMA user_version;').first<{ user_version: number }>();
-    userVersion = vu ? (vu as any).user_version ?? null : null;
+    // Try to get user_version, but don't fail if it doesn't work
+    try {
+      const vu = await c.env.DB.prepare('PRAGMA user_version;').first<{ user_version: number }>();
+      userVersion = vu ? (vu as any).user_version ?? null : null;
+    } catch {
+      // PRAGMA might not be supported, skip it
+      userVersion = null;
+    }
 
     const res = await c.env.DB.prepare(
       "SELECT name FROM sqlite_master WHERE type='table';"
@@ -39,7 +45,7 @@ app.get('/healthz', async (c) => {
     const have = new Set((res?.results ?? []).map(r => r.name));
     tablesOk = requiredTables.every(t => have.has(t));
     d1Ok = true;
-  } catch {
+  } catch (err) {
     d1Ok = false;
   }
 
