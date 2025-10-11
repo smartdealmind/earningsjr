@@ -111,23 +111,33 @@ app.post('/auth/register-parent', async (c) => {
 
   const pwd = await hashPassword(password);
 
-  const t = c.env.DB.prepare(`
-    INSERT INTO User (id,email,password_hash,first_name,last_name,role,created_at) VALUES (?,?,?,?,?,'parent',?);
-  `).bind(userId, email, pwd, first_name ?? null, last_name ?? null, now);
-
-  const f = c.env.DB.prepare(`INSERT INTO Family (id,name,created_at) VALUES (?,?,?);`).bind(familyId, family_name, now);
-
-  const m = c.env.DB.prepare(`
-    INSERT INTO FamilyMember (id,family_id,user_id,role,created_at) VALUES (?,?,?,'parent',?);
-  `).bind(memberId, familyId, userId, now);
-
-  const ex = c.env.DB.prepare(`
-    INSERT INTO ExchangeRule (id,family_id,points_per_currency,currency_code,rounding,weekly_allowance_points,required_task_min_pct,created_at)
-    VALUES (?,?,100,'USD','down',0,20,?);
-  `).bind(exchangeId, familyId, now);
-
-  // D1 lacks real txns; emulate with sequential exec + simple failure checks
-  await t.run(); await f.run(); await m.run(); await ex.run();
+  try {
+    // D1 batch execution
+    const result = await c.env.DB.batch([
+      c.env.DB.prepare(`
+        INSERT INTO User (id,email,password_hash,first_name,last_name,role,created_at) VALUES (?,?,?,?,?,'parent',?);
+      `).bind(userId, email, pwd, first_name ?? null, last_name ?? null, now),
+      
+      c.env.DB.prepare(`INSERT INTO Family (id,name,created_at) VALUES (?,?,?);`).bind(familyId, family_name, now),
+      
+      c.env.DB.prepare(`
+        INSERT INTO FamilyMember (id,family_id,user_id,role,created_at) VALUES (?,?,?,'parent',?);
+      `).bind(memberId, familyId, userId, now),
+      
+      c.env.DB.prepare(`
+        INSERT INTO ExchangeRule (id,family_id,points_per_currency,currency_code,rounding,weekly_allowance_points,required_task_min_pct,created_at)
+        VALUES (?,?,100,'USD','down',0,20,?);
+      `).bind(exchangeId, familyId, now)
+    ]);
+    
+    // Check if any query failed
+    const failed = result.find(r => !r.success);
+    if (failed) {
+      return c.json({ ok: false, error: 'Database error during registration' }, 500);
+    }
+  } catch (err) {
+    return c.json({ ok: false, error: 'Database error' }, 500);
+  }
 
   // Create session
   const token = uid('tok');
