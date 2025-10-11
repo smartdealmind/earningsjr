@@ -24,6 +24,18 @@ export const Api = {
   kidsBalances: () => api('/kids/balances').then(r => r.json()),
   ledger: (kid?: string) => api('/ledger' + (kid ? `?kid=${kid}` : '')).then(r => r.json()),
   exchangeQuote: (payload: { points?: number; amount_cents?: number }) =>
-    api('/exchange/quote', { method: 'POST', body: JSON.stringify(payload) }).then(r => r.json())
+    api('/exchange/quote', { method: 'POST', body: JSON.stringify(payload) }).then(r => r.json()),
+  rules: () => api('/exchange/rules').then(r => r.json()),
+  updateRules: (payload: any) => api('/exchange/rules', { method:'PATCH', body: JSON.stringify(payload) }).then(r => r.json()),
+  eligibility: (kid?: string) => api('/eligibility' + (kid ? `?kid=${kid}` : '')).then(r => r.json()),
+  goalsList: (kid?: string) => api('/goals' + (kid ? `?kid=${kid}` : '')).then(r => r.json()),
+  goalCreate: (payload: { kid_user_id?: string; title: string; target_amount_cents: number }) =>
+    api('/goals', { method:'POST', body: JSON.stringify(payload) }).then(r => r.json()),
+  goalCancel: (id: string) => api(`/goals/${id}/cancel`, { method:'POST' }).then(r => r.json()),
+  requestsCreate: (payload: { title: string; description?: string; suggested_points?: number }) =>
+    api('/requests', { method:'POST', body: JSON.stringify(payload) }).then(r => r.json()),
+  requestsList: (status?: string) => api('/requests' + (status ? `?status=${status}` : '')).then(r => r.json()),
+  requestsApprove: (id: string) => api(`/requests/${id}/approve`, { method:'POST' }).then(r => r.json()),
+  requestsDeny: (id: string) => api(`/requests/${id}/deny`, { method:'POST' }).then(r => r.json())
 };
 
