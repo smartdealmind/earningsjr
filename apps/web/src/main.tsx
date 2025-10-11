@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import App from './App'
+import HomePublic from './pages/HomePublic'
 import Onboarding from './Onboarding'
 import Approvals from './Approvals'
 import KidDashboard from './KidDashboard'
@@ -19,10 +20,9 @@ import { ErrorBoundary } from './ErrorBoundary'
 import { ThemeProvider } from './theme/ThemeProvider'
 import './index.css'
 
-const Home = () => <Shell><App /></Shell>;
-
 const router = createBrowserRouter([
-  { path: '/', element: <Home /> },
+  { path: '/', element: <Shell><HomePublic /></Shell> },
+  { path: '/dev', element: <Shell><App /></Shell> },
   { path: '/onboarding', element: <RequireAuth role="parent"><Shell><Onboarding /></Shell></RequireAuth> },
   { path: '/approvals', element: <RequireAuth role="parent"><Shell><Approvals /></Shell></RequireAuth> },
   { path: '/kid', element: <RequireAuth role="kid"><Shell><KidDashboard /></Shell></RequireAuth> },
