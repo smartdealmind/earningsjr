@@ -1,5 +1,17 @@
 import { useEffect, useState } from 'react';
 import { api } from './api';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+function Block({title, children}:{title:string, children:React.ReactNode}) {
+  return (
+    <Card className="mb-4">
+      <CardHeader><CardTitle className="tracking-tight">{title}</CardTitle></CardHeader>
+      <CardContent className="space-y-3">{children}</CardContent>
+    </Card>
+  );
+}
 
 export default function App() {
   const [health, setHealth] = useState<any>(null);
@@ -46,33 +58,36 @@ export default function App() {
     setMe(null);
   }
 
+  const Pre = ({ json }: { json: any }) => (
+    <pre className="text-sm leading-relaxed bg-slate-900 text-slate-50 p-3 rounded-md overflow-auto">
+      {JSON.stringify(json, null, 2)}
+    </pre>
+  );
+
   return (
-    <div style={{ maxWidth: 720, margin: '3rem auto', fontFamily: 'system-ui, sans-serif' }}>
-      <h1>ChoreCoins — MVP</h1>
+    <div className="max-w-3xl mx-auto my-8">
+      <h1 className="text-2xl font-semibold mb-4 tracking-tight">ChoreCoins — MVP</h1>
 
-      <section style={{ padding: '1rem', border: '1px solid #eee', borderRadius: 8, marginBottom: 16 }}>
-        <h2>Health</h2>
-        <pre>{JSON.stringify(health, null, 2)}</pre>
-      </section>
+      <Block title="Health">
+        <Pre json={health} />
+      </Block>
 
-      <section style={{ padding: '1rem', border: '1px solid #eee', borderRadius: 8, marginBottom: 16 }}>
-        <h2>Auth</h2>
-        <div style={{ display: 'grid', gap: 8, maxWidth: 400 }}>
-          <input placeholder="email" value={email} onChange={e => setEmail(e.target.value)} />
-          <input placeholder="password" value={password} onChange={e => setPassword(e.target.value)} type="password" />
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button disabled={loading} onClick={onRegister}>Register Parent</button>
-            <button disabled={loading} onClick={onLogin}>Login</button>
-            <button disabled={loading} onClick={onLogout}>Logout</button>
+      <Block title="Auth">
+        <div className="grid gap-2 max-w-md">
+          <Input placeholder="email" value={email} onChange={e => setEmail(e.target.value)} />
+          <Input placeholder="password" type="password" value={password} onChange={e => setPassword(e.target.value)} />
+          <div className="flex gap-2">
+            <Button disabled={loading} onClick={onRegister}>Register Parent</Button>
+            <Button variant="outline" disabled={loading} onClick={onLogin}>Login</Button>
+            <Button variant="outline" disabled={loading} onClick={onLogout}>Logout</Button>
           </div>
-          {msg && <div>{msg}</div>}
+          {msg && <div className="text-sm">{msg}</div>}
         </div>
-      </section>
+      </Block>
 
-      <section style={{ padding: '1rem', border: '1px solid #eee', borderRadius: 8 }}>
-        <h2>/me</h2>
-        <pre>{JSON.stringify(me, null, 2)}</pre>
-      </section>
+      <Block title="/me">
+        <Pre json={me} />
+      </Block>
     </div>
   );
 }
