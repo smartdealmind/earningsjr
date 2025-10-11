@@ -59,7 +59,7 @@ export default function App() {
   }
 
   const Pre = ({ json }: { json: any }) => (
-    <pre className="text-sm leading-relaxed bg-slate-900 text-slate-50 p-3 rounded-md overflow-auto">
+    <pre className="text-sm leading-relaxed bg-muted text-foreground p-3 rounded-md overflow-auto border border-border">
       {JSON.stringify(json, null, 2)}
     </pre>
   );
