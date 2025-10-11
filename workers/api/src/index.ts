@@ -95,21 +95,22 @@ app.get('/version', (c) => c.json({ version: '0.0.1' }));
 
 // --- Auth: Register parent + family bootstrap ---
 app.post('/auth/register-parent', async (c) => {
-  const body = await c.req.json<{ email: string, password: string, first_name?: string, last_name?: string, family_name: string }>();
-  const { email, password, first_name, last_name, family_name } = body || {};
-  if (!email || !password || !family_name) return c.json({ ok: false, error: 'Missing fields' }, 400);
+  try {
+    const body = await c.req.json<{ email: string, password: string, first_name?: string, last_name?: string, family_name: string }>();
+    const { email, password, first_name, last_name, family_name } = body || {};
+    if (!email || !password || !family_name) return c.json({ ok: false, error: 'Missing fields' }, 400);
 
-  const userId = uid('usr');
-  const familyId = uid('fam');
-  const memberId = uid('mbr');
-  const exchangeId = uid('exr');
-  const now = Date.now();
+    const userId = uid('usr');
+    const familyId = uid('fam');
+    const memberId = uid('mbr');
+    const exchangeId = uid('exr');
+    const now = Date.now();
 
-  // Unique email guard
-  const existing = await c.env.DB.prepare('SELECT id FROM User WHERE email = ?').bind(email).first();
-  if (existing) return c.json({ ok: false, error: 'Email already registered' }, 409);
+    // Unique email guard
+    const existing = await c.env.DB.prepare('SELECT id FROM User WHERE email = ?').bind(email).first();
+    if (existing) return c.json({ ok: false, error: 'Email already registered' }, 409);
 
-  const pwd = await hashPassword(password);
+    const pwd = await hashPassword(password);
 
   try {
     // D1 batch execution
@@ -149,6 +150,10 @@ app.post('/auth/register-parent', async (c) => {
   }));
 
   return c.json({ ok: true, userId, familyId });
+  } catch (err: any) {
+    console.error('Registration error:', err);
+    return c.json({ ok: false, error: err.message || 'Registration failed' }, 500);
+  }
 });
 
 // --- Auth: Login ---
