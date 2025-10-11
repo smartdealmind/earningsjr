@@ -9,6 +9,7 @@ type Bindings = {
   SESSION_KV: KVNamespace;
   ASSETS: R2Bucket;
   RESEND_API_KEY: string;
+  SENDER_EMAIL?: string; // e.g., "ChoreCoins <noreply@smartdealmind.com>"
 };
 
 type Vars = { userId?: string, role?: string };
@@ -294,8 +295,11 @@ app.post('/auth/send-verification', async (c) => {
   try {
     const emailHtml = getVerificationEmailHtml(code);
     
+    // Use custom sender email if set, otherwise default to Resend test email
+    const senderEmail = c.env.SENDER_EMAIL || 'ChoreCoins <onboarding@resend.dev>';
+    
     const emailPayload = {
-      from: 'ChoreCoins <onboarding@resend.dev>', // TODO: Change to your verified domain
+      from: senderEmail,
       to: [email],
       subject: `Your ChoreCoins verification code: ${code}`,
       html: emailHtml,
@@ -313,25 +317,32 @@ app.post('/auth/send-verification', async (c) => {
 
     if (!resendResponse.ok) {
       const errorData = await resendResponse.json();
-      console.error('Resend error:', errorData);
+      console.error('Resend API error:', {
+        status: resendResponse.status,
+        statusText: resendResponse.statusText,
+        error: errorData
+      });
       // Don't expose internal errors to user, but log for debugging
       return c.json({ 
         ok: false, 
-        error: 'Failed to send email. Please try again.' 
+        error: 'Failed to send email. Please try again.',
+        debug: errorData // Temporarily include for debugging
       }, 500);
     }
 
-    console.log(`Verification email sent to ${email}`);
+    const emailResult = await resendResponse.json();
+    console.log(`Verification email sent to ${email}`, emailResult);
 
     return c.json({ 
       ok: true, 
       message: 'Verification code sent to your email'
     });
-  } catch (error) {
-    console.error('Email sending error:', error);
+  } catch (error: any) {
+    console.error('Email sending error:', error?.message || error);
     return c.json({ 
       ok: false, 
-      error: 'Failed to send email. Please try again.' 
+      error: 'Failed to send email. Please try again.',
+      debug: error?.message || String(error) // Temporarily include for debugging
     }, 500);
   }
 });
