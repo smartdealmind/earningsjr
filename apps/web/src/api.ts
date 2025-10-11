@@ -18,6 +18,12 @@ export const Api = {
     api('/chores', { method: 'POST', body: JSON.stringify({ from_template_ids: templateIds, kid_user_id, due_at }) }).then(r => r.json()),
   listChores: (status?: string) => api('/chores' + (status ? `?status=${status}` : '')).then(r => r.json()),
   approve: (id: string) => api(`/chores/${id}/approve`, { method: 'POST' }).then(r => r.json()),
-  deny: (id: string) => api(`/chores/${id}/deny`, { method: 'POST' }).then(r => r.json())
+  deny: (id: string) => api(`/chores/${id}/deny`, { method: 'POST' }).then(r => r.json()),
+  kidLogin: (params: { kid_user_id?: string; display_name?: string; pin: string }) =>
+    api('/auth/kid-login', { method: 'POST', body: JSON.stringify(params) }).then(r => r.json()),
+  kidsBalances: () => api('/kids/balances').then(r => r.json()),
+  ledger: (kid?: string) => api('/ledger' + (kid ? `?kid=${kid}` : '')).then(r => r.json()),
+  exchangeQuote: (payload: { points?: number; amount_cents?: number }) =>
+    api('/exchange/quote', { method: 'POST', body: JSON.stringify(payload) }).then(r => r.json())
 };
 

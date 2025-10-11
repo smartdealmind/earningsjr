@@ -4,6 +4,8 @@ import { createBrowserRouter, RouterProvider, Link } from 'react-router-dom'
 import App from './App'
 import Onboarding from './Onboarding'
 import Approvals from './Approvals'
+import KidDashboard from './KidDashboard'
+import Balances from './Balances'
 import './index.css'
 
 const Layout = ({ children }: any) => (
@@ -12,6 +14,8 @@ const Layout = ({ children }: any) => (
       <Link to="/">Home</Link>
       <Link to="/onboarding">Onboarding</Link>
       <Link to="/approvals">Approvals</Link>
+      <Link to="/kid">Kid Dashboard</Link>
+      <Link to="/balances">Balances</Link>
     </nav>
     {children}
   </div>
@@ -22,7 +26,9 @@ const Home = () => <div style={{ padding: 16 }}><App /></div>;
 const router = createBrowserRouter([
   { path: '/', element: <Layout><Home /></Layout> },
   { path: '/onboarding', element: <Layout><Onboarding /></Layout> },
-  { path: '/approvals', element: <Layout><Approvals /></Layout> }
+  { path: '/approvals', element: <Layout><Approvals /></Layout> },
+  { path: '/kid', element: <Layout><KidDashboard /></Layout> },
+  { path: '/balances', element: <Layout><Balances /></Layout> }
 ])
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
