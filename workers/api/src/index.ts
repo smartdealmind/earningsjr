@@ -100,6 +100,31 @@ function genKidEmail(kidId: string) {
   return `${kidId}@kid.chorecoins.local`;
 }
 
+// Reminder helpers
+function dayMaskIncludes(mask: number, jsDay: number) {
+  // JS: 0=Sun..6=Sat → same bit mapping
+  return (mask & (1 << jsDay)) !== 0;
+}
+
+function localNowInTz(timezone: string) {
+  // Uses Intl to compute local time components
+  const d = new Date();
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone, hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', weekday: 'short'
+  });
+  const parts = fmt.formatToParts(d);
+  const get = (t: string) => parts.find(p => p.type === t)?.value;
+  // weekday: Sun,Mon,... → map to JS 0..6
+  const wd = get('weekday');
+  const jsDay = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(String(wd));
+  return {
+    hour: Number(get('hour')), minute: Number(get('minute')),
+    jsDay, date: d
+  };
+}
+
 // Root route
 app.get('/', (c) => {
   return c.json({
@@ -1246,6 +1271,97 @@ app.post('/admin/flags', async (c) => {
   return ok(c, {key: body.key, enabled: body.enabled});
 });
 
+// --- Daily Reminders ---
+
+// GET /reminders/prefs (parent/helper: list family prefs)
+app.get('/reminders/prefs', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const r = requireRole(c, ['parent','helper']); if (r) return r;
+  const fam = await getUserFamilyId(c, c.get('userId'));
+  const rows = await c.env.DB.prepare(`
+    SELECT RP.*, K.display_name
+    FROM ReminderPref RP JOIN KidProfile K ON K.user_id = RP.kid_user_id
+    WHERE RP.family_id=?
+    ORDER BY K.display_name
+  `).bind(fam).all();
+  return c.json({ ok:true, prefs: rows.results ?? [] });
+});
+
+// PATCH /reminders/prefs (parent only: upsert for a kid)
+app.patch('/reminders/prefs', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const r = requireRole(c, ['parent']); if (r) return r;
+  const { kid_user_id, enabled, hour_local, minute_local, days_mask, timezone, channel } =
+    await c.req.json<{
+      kid_user_id: string; enabled?: boolean; hour_local?: number; minute_local?: number;
+      days_mask?: number; timezone?: string; channel?: 'inapp'|'email'|'push';
+    }>();
+  if (!kid_user_id) return c.json({ ok:false, error:'kid_required' }, 400);
+
+  const fam = await getUserFamilyId(c, c.get('userId'));
+  const kidFam = await c.env.DB.prepare(`SELECT family_id FROM KidProfile WHERE user_id=?`).bind(kid_user_id).first<any>();
+  if (!kidFam || kidFam.family_id !== fam) return c.json({ ok:false, error:'wrong_family' }, 403);
+
+  const now = Date.now();
+  await c.env.DB.prepare(`
+    INSERT INTO ReminderPref (id,family_id,kid_user_id,enabled,hour_local,minute_local,days_mask,timezone,channel,updated_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(kid_user_id) DO UPDATE SET
+      enabled=COALESCE(?,enabled),
+      hour_local=COALESCE(?,hour_local),
+      minute_local=COALESCE(?,minute_local),
+      days_mask=COALESCE(?,days_mask),
+      timezone=COALESCE(?,timezone),
+      channel=COALESCE(?,channel),
+      updated_at=?
+  `).bind(
+    uid('rpf'), fam, kid_user_id, enabled?1:0,
+    hour_local ?? 19, minute_local ?? 0, days_mask ?? 127,
+    timezone ?? 'America/New_York', channel ?? 'inapp', now,
+    enabled==null?null:(enabled?1:0), hour_local ?? null, minute_local ?? null,
+    days_mask ?? null, timezone ?? null, channel ?? null, now
+  ).run();
+
+  await audit(c, { action:'reminder.pref.update', meta: { kid_user_id, enabled, hour_local, minute_local, days_mask, timezone, channel } });
+  return c.json({ ok:true });
+});
+
+// GET /reminders (parent/helper: family; kid: own)
+app.get('/reminders', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const role = c.get('role'); const userId = c.get('userId');
+  const fam = await getUserFamilyId(c, userId);
+
+  let where = ''; let arg: any[] = [];
+  if (role === 'kid') { where = 'WHERE kid_user_id=?'; arg = [userId]; }
+  else { where = 'WHERE family_id=?'; arg = [fam]; }
+
+  const rows = await c.env.DB.prepare(`
+    SELECT R.*, K.display_name
+    FROM ReminderEvent R JOIN KidProfile K ON K.user_id=R.kid_user_id
+    ${where}
+    ORDER BY created_at DESC LIMIT 200
+  `).bind(...arg).all();
+  return c.json({ ok:true, reminders: rows.results ?? [] });
+});
+
+// POST /reminders/:id/ack (parent/helper to mark handled)
+app.post('/reminders/:id/ack', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const role = c.get('role'); const userId = c.get('userId');
+  const id = c.req.param('id');
+
+  const fam = await getUserFamilyId(c, userId);
+  const row = await c.env.DB.prepare(`SELECT family_id FROM ReminderEvent WHERE id=?`).bind(id).first<any>();
+  if (!row || row.family_id !== fam) return c.json({ ok:false, error:'not_found' }, 404);
+
+  const now = Date.now();
+  await c.env.DB.prepare(`UPDATE ReminderEvent SET status='acked', acked_at=? WHERE id=? AND status!='acked'`)
+    .bind(now, id).run();
+  await audit(c, { action:'reminder.ack', targetId:id });
+  return c.json({ ok:true });
+});
+
 // --- Achievements & Badges ---
 
 // Kid (or parent-scoped) view of badges and stats
@@ -1315,10 +1431,43 @@ app.get('/admin/metrics', async (c) => {
   });
 });
 
+async function emitDueReminders(env: Bindings) {
+  // Fetch all enabled prefs
+  const prefs = await env.DB.prepare(`
+    SELECT id,family_id,kid_user_id,enabled,hour_local,minute_local,days_mask,timezone
+    FROM ReminderPref WHERE enabled=1
+  `).all<any>();
+
+  for (const p of (prefs.results ?? [])) {
+    const { hour, minute, jsDay } = localNowInTz(p.timezone);
+    // Only fire on exact minute to avoid duplicates (cron is every 15m)
+    if (hour !== p.hour_local || minute !== p.minute_local) continue;
+    if (!dayMaskIncludes(p.days_mask, jsDay)) continue;
+
+    // Count outstanding REQUIRED chores (open/claimed/submitted)
+    const open = await env.DB.prepare(`
+      SELECT COUNT(*) as n FROM Chore
+      WHERE kid_user_id=? AND is_required=1 AND status IN ('open','claimed','submitted')
+    `).bind(p.kid_user_id).first<any>();
+    const due = (open as any)?.n ?? 0;
+    if (due <= 0) continue;
+
+    const kid = await env.DB.prepare(`SELECT display_name FROM KidProfile WHERE user_id=?`).bind(p.kid_user_id).first<any>();
+    const msg = `${kid?.display_name || 'Your kid'} has ${due} required chore${due>1?'s':''} waiting`;
+
+    const id = uid('rem');
+    const now = Date.now();
+    await env.DB.prepare(`
+      INSERT INTO ReminderEvent (id,family_id,kid_user_id,type,message,due_required_count,created_at,status)
+      VALUES (?,?,?,?,?,?,?,'new')
+    `).bind(id, p.family_id, p.kid_user_id, 'daily_required', msg, due, now).run();
+  }
+}
+
 export default {
   fetch: app.fetch,
   scheduled: async (event: ScheduledEvent, env: Bindings, ctx: ExecutionContext) => {
-    // Scan families with weekly_allowance_points > 0
+    // Weekly allowance cron
     const fams = await env.DB.prepare(`
       SELECT family_id, weekly_allowance_points FROM ExchangeRule WHERE weekly_allowance_points > 0
     `).all<{ family_id: string, weekly_allowance_points: number }>();
@@ -1331,7 +1480,6 @@ export default {
       `).bind(f.family_id).all<{ user_id: string }>();
 
       for (const k of (kids.results ?? [])) {
-        // credit points
         const ledgerId = uid('plg');
         await env.DB.prepare(`
           INSERT INTO PointsLedger (id,kid_user_id,family_id,delta_points,reason,ref_id,created_at)
@@ -1343,5 +1491,8 @@ export default {
         `).bind((f as any).weekly_allowance_points, k.user_id).run();
       }
     }
+
+    // Daily reminders cron
+    await emitDueReminders(env);
   }
 };

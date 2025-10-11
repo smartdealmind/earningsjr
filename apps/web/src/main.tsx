@@ -11,6 +11,7 @@ import Goals from './Goals'
 import Requests from './Requests'
 import Admin from './Admin'
 import Achievements from './Achievements'
+import Reminders from './Reminders'
 import Shell from './components/Shell'
 import { Toaster } from '@/components/ui/sonner'
 import { RequireAuth } from './guards'
@@ -30,6 +31,7 @@ const router = createBrowserRouter([
   { path: '/goals', element: <RequireAuth role="kid"><Shell><Goals /></Shell></RequireAuth> },
   { path: '/requests', element: <RequireAuth role="parent"><Shell><Requests /></Shell></RequireAuth> },
   { path: '/achievements', element: <RequireAuth role="kid"><Shell><Achievements /></Shell></RequireAuth> },
+  { path: '/reminders', element: <RequireAuth role="parent"><Shell><Reminders /></Shell></RequireAuth> },
   { path: '/admin', element: <RequireAuth><Shell><Admin /></Shell></RequireAuth> }
 ])
 
