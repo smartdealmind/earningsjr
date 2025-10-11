@@ -1,5 +1,4 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
 import { useTheme } from '@/theme/ThemeProvider'
 
 export default function Shell({ children }: { children: React.ReactNode }) {
@@ -9,42 +8,52 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const isHome = location.pathname === '/';
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur">
-        <nav className="mx-auto max-w-6xl flex items-center gap-3 px-4 py-3 text-card-foreground">
-          <Link to="/" className="font-semibold tracking-tight text-lg mr-4">ChoreCoins</Link>
+    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-zinc-900/30 backdrop-blur-xl border-b border-zinc-800/50">
+        <nav className="mx-auto max-w-6xl flex items-center gap-3 px-6 py-4">
+          <Link to="/" className="text-xl font-semibold text-white tracking-tight">
+            Chore<span className="text-emerald-400">Coins</span>
+          </Link>
           
           {isHome ? (
             // Marketing nav: prominent CTAs
-            <div className="ml-auto flex gap-2 flex-wrap items-center">
-              <Link to="/onboarding"><Button size="sm">Create family</Button></Link>
-              <Link to="/kid"><Button variant="ghost" size="sm">I'm a kid</Button></Link>
-              <Link to="/balances"><Button variant="ghost" size="sm">Parent dashboard</Button></Link>
-              <Button variant="outline" size="sm" onClick={cycle} title="Toggle theme">
+            <div className="ml-auto flex gap-3 flex-wrap items-center">
+              <Link to="/onboarding"><button className="btn-glass text-sm px-4 py-2">Create family</button></Link>
+              <Link to="/kid" className="text-zinc-300 hover:text-emerald-400 transition text-sm">Kids</Link>
+              <Link to="/balances" className="text-zinc-300 hover:text-emerald-400 transition text-sm">Dashboard</Link>
+              <button 
+                onClick={cycle} 
+                title="Toggle theme"
+                className="rounded-full bg-zinc-800/60 p-2 backdrop-blur-md border border-zinc-700/40 hover:scale-105 transition text-zinc-300"
+              >
                 {mode === 'light' ? '☀️' : mode === 'dark' ? '🌙' : '🖥️'}
-              </Button>
+              </button>
             </div>
           ) : (
             // App nav: full internal links
-            <div className="ml-auto flex gap-2 flex-wrap">
-              <Link to="/onboarding"><Button variant="ghost" size="sm">Onboarding</Button></Link>
-              <Link to="/kid"><Button variant="ghost" size="sm">Kid</Button></Link>
-              <Link to="/approvals"><Button variant="ghost" size="sm">Approvals</Button></Link>
-              <Link to="/balances"><Button variant="ghost" size="sm">Balances</Button></Link>
-              <Link to="/rules"><Button variant="ghost" size="sm">Rules</Button></Link>
-              <Link to="/goals"><Button variant="ghost" size="sm">Goals</Button></Link>
-              <Link to="/achievements"><Button variant="ghost" size="sm">Achievements</Button></Link>
-              <Link to="/requests"><Button variant="ghost" size="sm">Requests</Button></Link>
-              <Link to="/reminders"><Button variant="ghost" size="sm">Reminders</Button></Link>
-              <Link to="/admin"><Button variant="ghost" size="sm">Admin</Button></Link>
-              <Button variant="outline" size="sm" onClick={cycle} title="Toggle theme">
+            <div className="ml-auto flex gap-2 flex-wrap items-center text-sm">
+              <Link to="/onboarding" className="text-zinc-300 hover:text-emerald-400 transition px-2">Onboarding</Link>
+              <Link to="/kid" className="text-zinc-300 hover:text-emerald-400 transition px-2">Kid</Link>
+              <Link to="/approvals" className="text-zinc-300 hover:text-emerald-400 transition px-2">Approvals</Link>
+              <Link to="/balances" className="text-zinc-300 hover:text-emerald-400 transition px-2">Balances</Link>
+              <Link to="/rules" className="text-zinc-300 hover:text-emerald-400 transition px-2">Rules</Link>
+              <Link to="/goals" className="text-zinc-300 hover:text-emerald-400 transition px-2">Goals</Link>
+              <Link to="/achievements" className="text-zinc-300 hover:text-emerald-400 transition px-2">Achievements</Link>
+              <Link to="/requests" className="text-zinc-300 hover:text-emerald-400 transition px-2">Requests</Link>
+              <Link to="/reminders" className="text-zinc-300 hover:text-emerald-400 transition px-2">Reminders</Link>
+              <Link to="/admin" className="text-zinc-300 hover:text-emerald-400 transition px-2">Admin</Link>
+              <button 
+                onClick={cycle} 
+                title="Toggle theme"
+                className="rounded-full bg-zinc-800/60 p-2 backdrop-blur-md border border-zinc-700/40 hover:scale-105 transition ml-2"
+              >
                 {mode === 'light' ? '☀️' : mode === 'dark' ? '🌙' : '🖥️'}
-              </Button>
+              </button>
             </div>
           )}
         </nav>
       </header>
-      <main className={isHome ? '' : 'mx-auto max-w-6xl px-4 py-6'}>{children}</main>
+      <main className={isHome ? 'pt-16' : 'mx-auto max-w-6xl px-4 py-6 pt-24'}>{children}</main>
     </div>
   )
 }
