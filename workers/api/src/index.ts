@@ -13,7 +13,8 @@ const app = new Hono<{ Bindings: Bindings, Variables: Vars }>();
 // CORS with Pages domain allowlist
 const ALLOWED_ORIGINS = [
   'http://localhost:5173', // local dev
-  'https://chorecoins.pages.dev' // update after first Pages deploy
+  'https://chorecoins.pages.dev', // production Pages
+  'https://chorecoins-api.thejmgfam.workers.dev' // API domain
 ];
 
 function isAllowedOrigin(origin?: string) {
