@@ -15,7 +15,6 @@ export default function Register() {
   const [familyName, setFamilyName] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [loading, setLoading] = useState(false);
-  const [devCode, setDevCode] = useState(''); // For showing code in dev mode
 
   // Validation
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -51,11 +50,6 @@ export default function Register() {
 
       if (r.ok) {
         toast.success('Verification code sent to your email!');
-        if (r.code) {
-          // Dev mode - show the code
-          setDevCode(r.code);
-          toast.info(`Dev mode: Code is ${r.code}`, { duration: 10000 });
-        }
         setStep('verify');
       } else {
         toast.error(r.error || 'Failed to send verification code');
@@ -114,11 +108,7 @@ export default function Register() {
       const r = await Api.sendVerification(email);
 
       if (r.ok) {
-        toast.success('New code sent!');
-        if (r.code) {
-          setDevCode(r.code);
-          toast.info(`Dev mode: Code is ${r.code}`, { duration: 10000 });
-        }
+        toast.success('New code sent to your email!');
       } else {
         toast.error(r.error || 'Failed to resend code');
       }
@@ -145,15 +135,10 @@ export default function Register() {
               We sent a 6-digit verification code to:
             </p>
             <p className="text-emerald-400 font-medium">{email}</p>
+            <p className="text-xs text-zinc-500 mt-2">
+              Check your email inbox (and spam folder)
+            </p>
           </div>
-
-          {devCode && (
-            <div className="mb-6 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
-              <p className="text-xs text-emerald-400 text-center">
-                DEV MODE: Your code is <span className="font-mono font-bold text-lg">{devCode}</span>
-              </p>
-            </div>
-          )}
 
           <form onSubmit={handleVerifyAndRegister} className="space-y-4">
             <div>

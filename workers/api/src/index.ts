@@ -8,6 +8,7 @@ type Bindings = {
   DB: D1Database;
   SESSION_KV: KVNamespace;
   ASSETS: R2Bucket;
+  RESEND_API_KEY: string;
 };
 
 type Vars = { userId?: string, role?: string };
@@ -193,6 +194,85 @@ app.get('/healthz', async (c) => {
 // optional: version
 app.get('/version', (c) => c.json({ version: '0.0.1' }));
 
+// Helper: Generate verification email HTML
+function getVerificationEmailHtml(code: string): string {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChoreCoins Verification Code</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #09090b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #09090b; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, rgba(24,24,27,0.95) 0%, rgba(39,39,42,0.95) 100%); border-radius: 24px; border: 1px solid rgba(63,63,70,0.5); overflow: hidden; box-shadow: 0 0 40px -10px rgba(0,0,0,0.5);">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 20px; text-align: center;">
+              <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #fff; letter-spacing: -0.5px;">
+                Chore<span style="color: #10b981;">Coins</span>
+              </h1>
+              <p style="margin: 10px 0 0; font-size: 14px; color: #a1a1aa;">Family Chore Management</p>
+            </td>
+          </tr>
+          
+          <!-- Content -->
+          <tr>
+            <td style="padding: 20px 40px;">
+              <div style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 16px; padding: 30px; text-align: center;">
+                <p style="margin: 0 0 20px; font-size: 16px; color: #d4d4d8; line-height: 1.6;">
+                  Your verification code is:
+                </p>
+                <div style="background: rgba(16,185,129,0.15); border: 2px solid rgba(16,185,129,0.4); border-radius: 12px; padding: 20px; margin: 0 auto; display: inline-block;">
+                  <span style="font-size: 36px; font-weight: 700; color: #10b981; letter-spacing: 8px; font-family: 'Courier New', monospace;">
+                    ${code}
+                  </span>
+                </div>
+                <p style="margin: 20px 0 0; font-size: 14px; color: #a1a1aa;">
+                  This code will expire in <strong style="color: #fbbf24;">10 minutes</strong>
+                </p>
+              </div>
+              
+              <p style="margin: 30px 0 0; font-size: 15px; color: #d4d4d8; line-height: 1.6; text-align: center;">
+                Enter this code on the verification page to complete your registration.
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Security Notice -->
+          <tr>
+            <td style="padding: 20px 40px 40px;">
+              <div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 12px; padding: 20px;">
+                <p style="margin: 0; font-size: 13px; color: #fca5a5; line-height: 1.5;">
+                  🔒 <strong>Security tip:</strong> Never share this code with anyone. ChoreCoins will never ask for your verification code.
+                </p>
+              </div>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 20px 40px 40px; text-align: center; border-top: 1px solid rgba(63,63,70,0.5);">
+              <p style="margin: 0 0 10px; font-size: 12px; color: #71717a;">
+                Didn't request this code? You can safely ignore this email.
+              </p>
+              <p style="margin: 0; font-size: 12px; color: #52525b;">
+                © ${new Date().getFullYear()} ChoreCoins • Powered by <a href="https://smartdealmind.com" style="color: #10b981; text-decoration: none;">SmartDealMind LLC</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}
+
 // --- Auth: Send Verification Code ---
 app.post('/auth/send-verification', async (c) => {
   const ip = c.req.header('CF-Connecting-IP') || 'unknown';
@@ -210,18 +290,50 @@ app.post('/auth/send-verification', async (c) => {
   // Store code in KV for 10 minutes
   await c.env.SESSION_KV.put(key, code, { expirationTtl: 600 });
 
-  // TODO: Send email via MailChannels/Resend
-  // For now, log to console (in production, send real email)
-  console.log(`Verification code for ${email}: ${code}`);
+  // Send email via Resend
+  try {
+    const emailHtml = getVerificationEmailHtml(code);
+    
+    const emailPayload = {
+      from: 'ChoreCoins <noreply@chorecoins.com>',
+      to: [email],
+      subject: `Your ChoreCoins verification code: ${code}`,
+      html: emailHtml,
+      text: `Your ChoreCoins verification code is: ${code}\n\nThis code will expire in 10 minutes.\n\nEnter this code on the verification page to complete your registration.\n\nIf you didn't request this code, you can safely ignore this email.`
+    };
 
-  // In dev/testing, return the code (remove in production!)
-  const isDev = c.req.header('host')?.includes('localhost') || c.req.header('host')?.includes('127.0.0.1');
-  
-  return c.json({ 
-    ok: true, 
-    message: 'Verification code sent to email',
-    ...(isDev ? { code } : {}) // Only return code in dev mode
-  });
+    const resendResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${c.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(emailPayload)
+    });
+
+    if (!resendResponse.ok) {
+      const errorData = await resendResponse.json();
+      console.error('Resend error:', errorData);
+      // Don't expose internal errors to user, but log for debugging
+      return c.json({ 
+        ok: false, 
+        error: 'Failed to send email. Please try again.' 
+      }, 500);
+    }
+
+    console.log(`Verification email sent to ${email}`);
+
+    return c.json({ 
+      ok: true, 
+      message: 'Verification code sent to your email'
+    });
+  } catch (error) {
+    console.error('Email sending error:', error);
+    return c.json({ 
+      ok: false, 
+      error: 'Failed to send email. Please try again.' 
+    }, 500);
+  }
 });
 
 // --- Auth: Verify Email Code ---
