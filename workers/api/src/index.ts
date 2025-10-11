@@ -1089,6 +1089,155 @@ app.get('/charts/:key{.+}', async (c) => {
   return new Response(obj.body, { headers: { 'Content-Type': 'image/svg+xml', 'Cache-Control':'public, max-age=3600' }});
 });
 
+// --- Payout System ---
+
+// Helper: convert points → money
+async function pointsToMoney(c: any, familyId: string, pts: number) {
+  const ex = await c.env.DB.prepare(`SELECT points_per_currency,currency_code FROM ExchangeRule WHERE family_id=?`)
+    .bind(familyId).first<any>();
+  const rate = ex?.points_per_currency ?? 100;
+  return { cents: Math.round((pts / rate) * 100), currency: ex?.currency_code ?? 'USD' };
+}
+
+// Helper: convert money → points
+async function moneyToPoints(c: any, familyId: string, cents: number) {
+  const ex = await c.env.DB.prepare(`SELECT points_per_currency FROM ExchangeRule WHERE family_id=?`)
+    .bind(familyId).first<any>();
+  const rate = ex?.points_per_currency ?? 100;
+  return Math.round((cents / 100) * rate);
+}
+
+// Create payout request
+app.post('/payouts', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const role = c.get('role');
+  const userId = c.get('userId');
+  const body = await c.req.json<{ kid_user_id?: string; points?: number; amount_cents?: number }>();
+  
+  const kidId = role === 'kid' ? userId : body.kid_user_id;
+  if (!kidId) return err(c, 400, 'missing_kid', 'Kid user ID required');
+  
+  const familyId = await getUserFamilyId(c, kidId);
+  if (!familyId) return err(c, 400, 'family_not_found', 'Family not found');
+  
+  const pts = body.points ?? await moneyToPoints(c, familyId, body.amount_cents ?? 0);
+  const { cents, currency } = await pointsToMoney(c, familyId, pts);
+  const now = Date.now();
+  const id = uid('pay');
+  
+  await c.env.DB.prepare(
+    `INSERT INTO Payout (id,family_id,kid_user_id,points,amount_cents,currency,status,created_at)
+     VALUES (?,?,?,?,?,?,?,?)`
+  ).bind(id, familyId, kidId, pts, cents, currency, 'requested', now).run();
+  
+  await audit(c, { action:'payout.request', targetId:id, familyId, meta:{kidId,pts,cents,currency} });
+  
+  return ok(c, {id, status:'requested', points:pts, amount_cents:cents});
+});
+
+// Approve payout
+app.post('/payouts/:id/approve', async (c) => {
+  const a = await requireAdmin(c); if (a) return a;
+  const id = c.req.param('id');
+  const now = Date.now();
+  const userId = c.get('userId');
+  
+  const row = await c.env.DB.prepare(`SELECT * FROM Payout WHERE id=?`).bind(id).first<any>();
+  if (!row || row.status !== 'requested') return err(c, 400, 'invalid_status', 'Payout not in requested state');
+  
+  await c.env.DB.prepare(`UPDATE Payout SET status='approved',decided_at=?,decided_by=? WHERE id=?`)
+    .bind(now, userId, id).run();
+  
+  await audit(c, {action:'payout.approve', targetId:id, meta:{points:row.points, amount_cents:row.amount_cents}});
+  
+  return ok(c, {id, status:'approved'});
+});
+
+// Reject payout
+app.post('/payouts/:id/reject', async (c) => {
+  const a = await requireAdmin(c); if (a) return a;
+  const id = c.req.param('id');
+  const now = Date.now();
+  const userId = c.get('userId');
+  
+  const row = await c.env.DB.prepare(`SELECT * FROM Payout WHERE id=?`).bind(id).first<any>();
+  if (!row || row.status !== 'requested') return err(c, 400, 'invalid_status', 'Payout not in requested state');
+  
+  await c.env.DB.prepare(`UPDATE Payout SET status='rejected',decided_at=?,decided_by=? WHERE id=?`)
+    .bind(now, userId, id).run();
+  
+  await audit(c, {action:'payout.reject', targetId:id, meta:{points:row.points, amount_cents:row.amount_cents}});
+  
+  return ok(c, {id, status:'rejected'});
+});
+
+// List payouts
+app.get('/payouts', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const role = c.get('role');
+  const userId = c.get('userId');
+  
+  const familyId = await getUserFamilyId(c, userId);
+  const where = role === 'kid' ? 'kid_user_id=?' : 'family_id=?';
+  const val = role === 'kid' ? userId : familyId;
+  
+  const rows = await c.env.DB.prepare(
+    `SELECT * FROM Payout WHERE ${where} ORDER BY created_at DESC`
+  ).bind(val).all<any>();
+  
+  return ok(c, {payouts: rows.results});
+});
+
+// Export payouts to CSV
+app.get('/payouts/export.csv', async (c) => {
+  const a = await requireAdmin(c); if (a) return a;
+  
+  const rows = await c.env.DB.prepare(
+    `SELECT * FROM Payout ORDER BY created_at DESC`
+  ).all<any>();
+  
+  const header = 'id,family_id,kid_user_id,points,amount_cents,currency,status,created_at,decided_at\n';
+  const csv = header + (rows.results ?? []).map((r: any) =>
+    [r.id, r.family_id, r.kid_user_id, r.points, r.amount_cents, r.currency, r.status, r.created_at, r.decided_at || ''].join(',')
+  ).join('\n');
+  
+  return new Response(csv, {
+    headers: {
+      'Content-Type': 'text/csv',
+      'Content-Disposition': 'attachment; filename="payouts.csv"'
+    }
+  });
+});
+
+// --- Feature Flags ---
+
+// List all flags
+app.get('/admin/flags', async (c) => {
+  const a = await requireAdmin(c); if (a) return a;
+  const rows = await c.env.DB.prepare(`SELECT * FROM FeatureFlag ORDER BY key`).all<any>();
+  return ok(c, {flags: rows.results});
+});
+
+// Upsert flag
+app.post('/admin/flags', async (c) => {
+  const a = await requireAdmin(c); if (a) return a;
+  const body = await c.req.json<{key: string; enabled: boolean; description?: string}>();
+  const now = Date.now();
+  
+  await c.env.DB.prepare(`
+    INSERT INTO FeatureFlag (key,enabled,description,updated_at)
+    VALUES (?,?,?,?)
+    ON CONFLICT(key) DO UPDATE SET 
+      enabled=excluded.enabled,
+      description=excluded.description,
+      updated_at=excluded.updated_at
+  `).bind(body.key, body.enabled ? 1 : 0, body.description ?? null, now).run();
+  
+  await audit(c, {action:'flag.update', meta: body});
+  
+  return ok(c, {key: body.key, enabled: body.enabled});
+});
+
 // --- Admin API: Audit Log & Metrics ---
 
 // List audit logs (paginated)

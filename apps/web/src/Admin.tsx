@@ -10,8 +10,10 @@ export default function Admin() {
   const [rows, setRows] = useState<any[]>([])
   const [after, setAfter] = useState<number>(0)
   const [loading, setLoading] = useState(false)
+  const [payouts, setPayouts] = useState<any[]>([])
+  const [flags, setFlags] = useState<any[]>([])
 
-  useEffect(() => { loadStats(); loadAudit(0) }, [])
+  useEffect(() => { loadStats(); loadAudit(0); loadPayouts(); loadFlags() }, [])
 
   async function loadStats() {
     const r = await fetch(`${API}/admin/metrics`, { credentials:'include' })
@@ -31,6 +33,55 @@ export default function Admin() {
     if (j.rows?.length) setAfter(j.rows[j.rows.length-1].ts)
   }
 
+  async function loadPayouts() {
+    const r = await fetch(`${API}/payouts`, { credentials:'include' })
+    if (!r.ok) return
+    const j = await r.json()
+    setPayouts(j.payouts || [])
+  }
+
+  async function loadFlags() {
+    const r = await fetch(`${API}/admin/flags`, { credentials:'include' })
+    if (!r.ok) return
+    const j = await r.json()
+    setFlags(j.flags || [])
+  }
+
+  async function approvePayout(id: string) {
+    const r = await fetch(`${API}/payouts/${id}/approve`, { method: 'POST', credentials:'include' })
+    if (r.ok) {
+      toast.success('Payout approved')
+      loadPayouts()
+    } else {
+      toast.error('Failed to approve')
+    }
+  }
+
+  async function rejectPayout(id: string) {
+    const r = await fetch(`${API}/payouts/${id}/reject`, { method: 'POST', credentials:'include' })
+    if (r.ok) {
+      toast.success('Payout rejected')
+      loadPayouts()
+    } else {
+      toast.error('Failed to reject')
+    }
+  }
+
+  async function toggleFlag(key: string, enabled: boolean) {
+    const r = await fetch(`${API}/admin/flags`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ key, enabled })
+    })
+    if (r.ok) {
+      toast.success(`Flag ${key} ${enabled ? 'enabled' : 'disabled'}`)
+      loadFlags()
+    } else {
+      toast.error('Failed to update flag')
+    }
+  }
+
   return (
     <div className="max-w-5xl mx-auto my-6 space-y-6">
       <Card>
@@ -40,6 +91,55 @@ export default function Admin() {
           <Metric label="Kids" value={stats?.stats?.kids} />
           <Metric label="Chores last 7d" value={stats?.stats?.chores_created_last7d} />
           <Metric label="Approvals 24h" value={stats?.stats?.approvals_last24h} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Payouts</CardTitle></CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {payouts.filter(p => p.status === 'requested').length === 0 && (
+              <p className="text-sm text-muted-foreground">No pending payouts</p>
+            )}
+            {payouts.filter(p => p.status === 'requested').map((p: any) => (
+              <div key={p.id} className="flex items-center justify-between border rounded-lg p-3">
+                <div>
+                  <div className="font-medium">{p.points} points → ${(p.amount_cents / 100).toFixed(2)}</div>
+                  <div className="text-sm text-muted-foreground">Kid: {p.kid_user_id}</div>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => approvePayout(p.id)}>Approve</Button>
+                  <Button size="sm" variant="outline" onClick={() => rejectPayout(p.id)}>Reject</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Feature Flags</CardTitle></CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {flags.length === 0 && (
+              <p className="text-sm text-muted-foreground">No flags defined</p>
+            )}
+            {flags.map((f: any) => (
+              <div key={f.key} className="flex items-center justify-between py-2 border-b last:border-0">
+                <div>
+                  <div className="font-medium">{f.key}</div>
+                  {f.description && <div className="text-sm text-muted-foreground">{f.description}</div>}
+                </div>
+                <Button
+                  size="sm"
+                  variant={f.enabled ? "default" : "outline"}
+                  onClick={() => toggleFlag(f.key, !f.enabled)}
+                >
+                  {f.enabled ? 'Enabled' : 'Disabled'}
+                </Button>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
