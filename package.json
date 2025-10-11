@@ -1,0 +1,15 @@
+{
+  "name": "chorecoins",
+  "private": true,
+  "version": "0.0.1",
+  "packageManager": "pnpm@9.0.0",
+  "workspaces": [
+    "apps/*",
+    "workers/*"
+  ],
+  "scripts": {
+    "build": "echo \"Use per-package builds\"",
+    "dev": "echo \"Use per-package dev scripts\""
+  }
+}
+

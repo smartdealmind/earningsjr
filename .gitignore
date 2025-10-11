@@ -1,0 +1,10 @@
+# Node
+node_modules
+dist
+*.log
+# Env
+.env
+.env.*
+# Editor junk
+.DS_Store
+
