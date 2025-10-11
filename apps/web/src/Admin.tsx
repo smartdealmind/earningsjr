@@ -48,7 +48,7 @@ export default function Admin() {
         <CardContent>
           <div className="overflow-auto max-h-[60vh]">
             <table className="w-full text-sm">
-              <thead className="text-left sticky top-0 bg-white dark:bg-slate-900">
+              <thead className="text-left sticky top-0 bg-card border-b border-border">
                 <tr>
                   <th className="py-2">Time</th>
                   <th>Action</th>

@@ -1,33 +1,35 @@
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-  --primary: 222.2 47.4% 11.2%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --ring: 215 20.2% 65.1%;
+  /* Light mode - bright backgrounds, dark text */
+  --background: 0 0% 100%;          /* white */
+  --foreground: 222.2 84% 4.9%;     /* nearly black */
+  --card: 0 0% 100%;                /* white */
+  --card-foreground: 222.2 84% 4.9%; /* nearly black */
+  --muted: 210 40% 96.1%;           /* very light gray */
+  --muted-foreground: 215.4 16.3% 46.9%; /* medium gray text */
+  --border: 214.3 31.8% 91.4%;      /* light gray border */
+  --input: 214.3 31.8% 91.4%;       /* light gray input bg */
+  --primary: 222.2 47.4% 11.2%;     /* dark blue-gray */
+  --primary-foreground: 210 40% 98%; /* very light text */
+  --secondary: 210 40% 96.1%;       /* very light gray */
+  --secondary-foreground: 222.2 47.4% 11.2%; /* dark text */
+  --ring: 215 20.2% 65.1%;          /* medium blue-gray */
 }
 
-.dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --primary: 210 40% 98%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --ring: 217.2 32.6% 17.5%;
+html.dark {
+  /* Dark mode - dark backgrounds, light text */
+  --background: 222.2 84% 4.9%;     /* very dark blue-gray */
+  --foreground: 210 40% 98%;        /* nearly white */
+  --card: 222.2 84% 4.9%;           /* very dark blue-gray */
+  --card-foreground: 210 40% 98%;   /* nearly white */
+  --muted: 217.2 32.6% 17.5%;       /* dark gray */
+  --muted-foreground: 215 20.2% 65.1%; /* light gray text */
+  --border: 217.2 32.6% 17.5%;      /* dark border */
+  --input: 217.2 32.6% 17.5%;       /* dark input bg */
+  --primary: 210 40% 98%;           /* nearly white */
+  --primary-foreground: 222.2 47.4% 11.2%; /* dark text */
+  --secondary: 217.2 32.6% 17.5%;   /* dark gray */
+  --secondary-foreground: 210 40% 98%; /* nearly white */
+  --ring: 217.2 32.6% 17.5%;        /* dark border */
 }
 
 @tailwind base;

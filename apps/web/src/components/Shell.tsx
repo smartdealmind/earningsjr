@@ -8,8 +8,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-50 border-b border-border bg-white/90 dark:bg-slate-900/90 backdrop-blur">
-        <nav className="mx-auto max-w-6xl flex items-center gap-3 px-4 py-3">
+      <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur">
+        <nav className="mx-auto max-w-6xl flex items-center gap-3 px-4 py-3 text-card-foreground">
           <Link to="/" className="font-semibold tracking-tight text-lg mr-4">ChoreCoins</Link>
           <div className="ml-auto flex gap-2 flex-wrap">
             <Link to="/onboarding"><Button variant="ghost" size="sm">Onboarding</Button></Link>
