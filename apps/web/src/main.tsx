@@ -9,6 +9,7 @@ import Balances from './Balances'
 import Rules from './Rules'
 import Goals from './Goals'
 import Requests from './Requests'
+import Admin from './Admin'
 import Shell from './components/Shell'
 import { Toaster } from '@/components/ui/sonner'
 import { RequireAuth } from './guards'
@@ -26,7 +27,8 @@ const router = createBrowserRouter([
   { path: '/balances', element: <RequireAuth role="parent"><Shell><Balances /></Shell></RequireAuth> },
   { path: '/rules', element: <RequireAuth role="parent"><Shell><Rules /></Shell></RequireAuth> },
   { path: '/goals', element: <RequireAuth role="kid"><Shell><Goals /></Shell></RequireAuth> },
-  { path: '/requests', element: <RequireAuth role="parent"><Shell><Requests /></Shell></RequireAuth> }
+  { path: '/requests', element: <RequireAuth role="parent"><Shell><Requests /></Shell></RequireAuth> },
+  { path: '/admin', element: <RequireAuth><Shell><Admin /></Shell></RequireAuth> }
 ])
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

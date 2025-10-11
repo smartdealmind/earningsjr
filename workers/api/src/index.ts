@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { uid, hashPassword, verifyPassword, cookieSerialize } from './lib';
 import { ok, err, readJson, rateLimit } from './http';
+import { audit } from './logger';
 
 type Bindings = {
   DB: D1Database;
@@ -76,6 +77,13 @@ function requireAuth(c: any) {
 function requireRole(c: any, roles: string[]) {
   const role = c.get('role');
   if (!role || !roles.includes(role)) return c.json({ ok: false, error: 'forbidden' }, 403);
+  return null;
+}
+async function requireAdmin(c: any) {
+  const uid = c.get('userId');
+  if (!uid) return c.json({ ok: false, error: 'auth_required' }, 401);
+  const u = await c.env.DB.prepare('SELECT is_admin FROM User WHERE id=?').bind(uid).first<{ is_admin: number }>();
+  if (!u || (u as any).is_admin !== 1) return c.json({ ok: false, error: 'admin_only' }, 403);
   return null;
 }
 async function getUserFamilyId(c: any, userId: string) {
@@ -221,6 +229,8 @@ app.post('/auth/register-parent', async (c) => {
     httpOnly: true, secure: true, sameSite: 'Lax', path: '/', maxAge: 60 * 60 * 24 * 7
   }));
 
+  await audit(c, { action: 'auth.register', targetId: userId, meta: { role: 'parent' }, familyId });
+
   return c.json({ ok: true, userId, familyId });
   } catch (err: any) {
     console.error('Registration error:', err);
@@ -254,6 +264,8 @@ app.post('/auth/login', async (c) => {
   c.header('Set-Cookie', cookieSerialize('cc_sess', encodeURIComponent(token), {
     httpOnly: true, secure: true, sameSite: 'Lax', path: '/', maxAge: 60 * 60 * 24 * 7
   }));
+
+  await audit(c, { action: 'auth.login', targetId: (row as any).id, meta: { role } });
 
   return c.json({ ok: true });
 });
@@ -543,6 +555,8 @@ app.post('/chores/:id/approve', async (c) => {
       .bind(row.points, row.kid_user_id).run();
   }
 
+  await audit(c, { action: 'chore.approve', targetId: id, meta: { points: row.points, required: !!row.is_required } });
+
   return c.json({ ok:true });
 });
 
@@ -563,6 +577,8 @@ app.post('/chores/:id/deny', async (c) => {
   await c.env.DB.prepare(`UPDATE Chore SET status='denied' WHERE id=?`).bind(id).run();
   await c.env.DB.prepare(`INSERT INTO ChoreEvent (id,chore_id,actor_user_id,type,created_at) VALUES (?,?,?,?,?)`)
     .bind(uid('cev'), id, approverId, 'denied', now).run();
+
+  await audit(c, { action: 'chore.deny', targetId: id, meta: {} });
 
   return c.json({ ok:true });
 });
@@ -690,6 +706,8 @@ app.patch('/exchange/rules', async (c) => {
   await c.env.DB.prepare(
     `UPDATE ExchangeRule SET points_per_currency=?, currency_code=?, rounding=?, weekly_allowance_points=?, required_task_min_pct=?, updated_at=? WHERE family_id=?`
   ).bind(next.points_per_currency, next.currency_code, next.rounding, next.weekly_allowance_points, next.required_task_min_pct, now, familyId).run();
+
+  await audit(c, { action: 'rules.update', meta: next, familyId });
 
   return c.json({ ok:true, rules: next });
 });
@@ -916,6 +934,8 @@ app.post('/trusted/invites', async (c) => {
     VALUES (?,?,?,?,?,?,?)
   `).bind(id, familyId, body.scope, token, body.email ?? null, expires, now).run();
 
+  await audit(c, { action: 'trusted.invite.create', targetId: id, meta: { scope: body.scope }, familyId });
+
   return c.json({ ok:true, invite: { token, scope: body.scope, expires_at: expires } });
 });
 
@@ -1067,6 +1087,49 @@ app.get('/charts/:key{.+}', async (c) => {
   const obj = await c.env.ASSETS.get(key);
   if (!obj) return c.text('Not found', 404);
   return new Response(obj.body, { headers: { 'Content-Type': 'image/svg+xml', 'Cache-Control':'public, max-age=3600' }});
+});
+
+// --- Admin API: Audit Log & Metrics ---
+
+// List audit logs (paginated)
+app.get('/admin/audit', async (c) => {
+  const a = await requireAdmin(c); if (a) return a;
+  const limit = Math.min(parseInt(c.req.query('limit') ?? '50', 10), 200);
+  const after = parseInt(c.req.query('after') ?? '0', 10);
+  const where = after ? `WHERE ts < ?` : '';
+  
+  const res = await c.env.DB.prepare(
+    `SELECT id,ts,user_id,family_id,action,target_id,meta_json,ip,ua
+     FROM AuditLog ${where}
+     ORDER BY ts DESC LIMIT ?`
+  ).bind(...(after ? [after, limit] : [limit])).all();
+  
+  return c.json({ ok: true, rows: res.results ?? [] });
+});
+
+// Quick metrics snapshot
+app.get('/admin/metrics', async (c) => {
+  const a = await requireAdmin(c); if (a) return a;
+  const now = Date.now();
+  const day = now - 86400_000;
+  const week = now - 7 * 86400_000;
+
+  const [parents, kids, choresW, approvalsD] = await Promise.all([
+    c.env.DB.prepare(`SELECT COUNT(*) as n FROM User WHERE role='parent'`).first<{ n: number }>(),
+    c.env.DB.prepare(`SELECT COUNT(*) as n FROM User WHERE role='kid'`).first<{ n: number }>(),
+    c.env.DB.prepare(`SELECT COUNT(*) as n FROM Chore WHERE created_at >= ?`).bind(week).first<{ n: number }>(),
+    c.env.DB.prepare(`SELECT COUNT(*) as n FROM ChoreEvent WHERE type='approved' AND created_at >= ?`).bind(day).first<{ n: number }>()
+  ]);
+
+  return c.json({
+    ok: true,
+    stats: {
+      parents: (parents as any)?.n ?? 0,
+      kids: (kids as any)?.n ?? 0,
+      chores_created_last7d: (choresW as any)?.n ?? 0,
+      approvals_last24h: (approvalsD as any)?.n ?? 0
+    }
+  });
 });
 
 export default {
