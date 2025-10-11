@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import App from './App'
 import HomePublic from './pages/HomePublic'
+import Register from './pages/Register'
+import Login from './pages/Login'
 import Onboarding from './Onboarding'
 import Approvals from './Approvals'
 import KidDashboard from './KidDashboard'
@@ -22,6 +24,8 @@ import './index.css'
 
 const router = createBrowserRouter([
   { path: '/', element: <Shell><HomePublic /></Shell> },
+  { path: '/register', element: <Shell><Register /></Shell> },
+  { path: '/login', element: <Shell><Login /></Shell> },
   { path: '/dev', element: <Shell><App /></Shell> },
   { path: '/onboarding', element: <RequireAuth role="parent"><Shell><Onboarding /></Shell></RequireAuth> },
   { path: '/approvals', element: <RequireAuth role="parent"><Shell><Approvals /></Shell></RequireAuth> },

@@ -33,8 +33,8 @@ export default function HomePublic() {
                   Points that convert to money—with guardrails parents control.
                 </p>
                 <div className="flex flex-wrap gap-3 mb-8">
-                  <Link to="/onboarding"><button className="btn-glass text-base px-6 py-3">Start Free</button></Link>
-                  <Link to="/kid"><button className="btn-glass-secondary text-base px-6 py-3">I'm a Kid</button></Link>
+                  <Link to="/register"><button className="btn-glass text-base px-6 py-3">Start Free</button></Link>
+                  <Link to="/login"><button className="btn-glass-secondary text-base px-6 py-3">Sign In</button></Link>
                 </div>
                 <div className="space-y-3">
                   <Check>Parent-controlled exchange rate & weekly allowance</Check>
@@ -120,7 +120,7 @@ export default function HomePublic() {
           </div>
         </div>
         <div className="mt-8 text-center">
-          <Link to="/onboarding"><button className="btn-glass text-base px-6 py-3">Get started free</button></Link>
+          <Link to="/register"><button className="btn-glass text-base px-6 py-3">Get started free</button></Link>
         </div>
       </section>
 
@@ -135,7 +135,7 @@ export default function HomePublic() {
           <div className="card-glass p-6">
             <div className="text-lg font-semibold text-white mb-3">Is this free?</div>
             <p className="text-zinc-400 mb-4">Yes, during MVP. We'll keep a generous free tier.</p>
-            <Link to="/onboarding"><button className="btn-glass">Create your family</button></Link>
+            <Link to="/register"><button className="btn-glass">Create your family</button></Link>
           </div>
         </div>
       </section>

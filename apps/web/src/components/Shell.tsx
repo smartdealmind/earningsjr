@@ -18,9 +18,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           {isHome ? (
             // Marketing nav: prominent CTAs
             <div className="ml-auto flex gap-3 flex-wrap items-center">
-              <Link to="/onboarding"><button className="btn-glass text-sm px-4 py-2">Create family</button></Link>
-              <Link to="/kid" className="text-zinc-300 hover:text-emerald-400 transition text-sm">Kids</Link>
-              <Link to="/balances" className="text-zinc-300 hover:text-emerald-400 transition text-sm">Dashboard</Link>
+              <Link to="/register"><button className="btn-glass text-sm px-4 py-2">Create family</button></Link>
+              <Link to="/login" className="text-zinc-300 hover:text-emerald-400 transition text-sm">Sign In</Link>
               <button 
                 onClick={cycle} 
                 title="Toggle theme"
