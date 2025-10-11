@@ -40,10 +40,13 @@ export default function Onboarding() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [selectedTemplates, setSelectedTemplates] = useState<Set<string>>(new Set());
   const [age, setAge] = useState(8);
-  const [customChores, setCustomChores] = useState<Array<{ title: string; points: number; category: string }>>([]);
+  const [customChores, setCustomChores] = useState<Array<{ title: string; points: number; category: string; minAge?: number; maxAge?: number; saveAsTemplate: boolean }>>([]);
   const [customTitle, setCustomTitle] = useState('');
   const [customPoints, setCustomPoints] = useState(10);
   const [customCategory, setCustomCategory] = useState('home');
+  const [customMinAge, setCustomMinAge] = useState(4);
+  const [customMaxAge, setCustomMaxAge] = useState(17);
+  const [saveAsTemplate, setSaveAsTemplate] = useState(false);
 
   const [steps, setSteps] = useState<OnboardingStep[]>([
     { id: 'welcome', title: 'Welcome', description: 'Get started with ChoreCoins', required: true, completed: false },
@@ -158,6 +161,24 @@ export default function Onboarding() {
             // Create custom chores
             for (const chore of customChores) {
               await Api.createChore(kid.id, chore.title, chore.points, chore.category);
+              
+              // Save as template if requested
+              if (chore.saveAsTemplate) {
+                try {
+                  await Api.createTemplate({
+                    title: chore.title,
+                    description: `Custom chore: ${chore.title}`,
+                    min_age: chore.minAge || 4,
+                    max_age: chore.maxAge || 17,
+                    category: chore.category,
+                    default_points: chore.points,
+                    is_required_default: false
+                  });
+                  toast.success(`"${chore.title}" saved as template!`);
+                } catch (err) {
+                  console.error('Failed to save template:', err);
+                }
+              }
             }
           }
           markStepCompleted('chores');
@@ -240,9 +261,24 @@ export default function Onboarding() {
       toast.error('Chore title is required');
       return;
     }
-    setCustomChores([...customChores, { title: customTitle, points: customPoints, category: customCategory }]);
+    if (customMinAge > customMaxAge) {
+      toast.error('Min age must be less than or equal to max age');
+      return;
+    }
+    setCustomChores([...customChores, { 
+      title: customTitle, 
+      points: customPoints, 
+      category: customCategory,
+      minAge: customMinAge,
+      maxAge: customMaxAge,
+      saveAsTemplate: saveAsTemplate
+    }]);
     setCustomTitle('');
     setCustomPoints(10);
+    setCustomCategory('home');
+    setCustomMinAge(4);
+    setCustomMaxAge(17);
+    setSaveAsTemplate(false);
     toast.success('Custom chore added!');
   }
 
@@ -615,8 +651,17 @@ export default function Onboarding() {
                       {customChores.map((chore, idx) => (
                         <div key={idx} className="flex items-center justify-between bg-zinc-800/30 rounded-lg p-3">
                           <div>
-                            <span className="text-white font-medium">{chore.title}</span>
-                            <span className="text-zinc-400 text-sm ml-2">• {chore.points} pts • {chore.category}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-white font-medium">{chore.title}</span>
+                              {chore.saveAsTemplate && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                  Will save as template
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-zinc-400 text-sm">
+                              {chore.points} pts • {chore.category} • Ages {chore.minAge}-{chore.maxAge}
+                            </span>
                           </div>
                           <button
                             onClick={() => removeCustomChore(idx)}
@@ -629,45 +674,93 @@ export default function Onboarding() {
                     </div>
                   )}
 
-                  <div className="grid md:grid-cols-3 gap-3">
-                    <div className="md:col-span-1">
-                      <label className="block text-sm font-medium text-zinc-300 mb-2">Title</label>
-                      <input
-                        value={customTitle}
-                        onChange={e => setCustomTitle(e.target.value)}
-                        className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                        placeholder="Water plants"
-                      />
+                  <div className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-300 mb-2">Title *</label>
+                        <input
+                          value={customTitle}
+                          onChange={e => setCustomTitle(e.target.value)}
+                          className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                          placeholder="Water plants"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-300 mb-2">Category</label>
+                        <select
+                          value={customCategory}
+                          onChange={e => setCustomCategory(e.target.value)}
+                          className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                        >
+                          <option value="home">🏠 Home</option>
+                          <option value="room">🛏️ Room</option>
+                          <option value="kitchen">🍳 Kitchen</option>
+                          <option value="pets">🐾 Pets</option>
+                          <option value="yard">🌳 Yard</option>
+                          <option value="family">👨‍👩‍👧 Family</option>
+                          <option value="self-care">🧼 Self-Care</option>
+                          <option value="learning">📚 Learning</option>
+                          <option value="other">📌 Other</option>
+                        </select>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-zinc-300 mb-2">Points</label>
-                      <input
-                        type="number"
-                        value={customPoints}
-                        onChange={e => setCustomPoints(parseInt(e.target.value) || 10)}
-                        className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                      />
+
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-300 mb-2">Points</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={customPoints}
+                          onChange={e => setCustomPoints(parseInt(e.target.value) || 10)}
+                          className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-300 mb-2">Min Age</label>
+                        <input
+                          type="number"
+                          min="3"
+                          max="17"
+                          value={customMinAge}
+                          onChange={e => setCustomMinAge(parseInt(e.target.value) || 4)}
+                          className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-300 mb-2">Max Age</label>
+                        <input
+                          type="number"
+                          min="3"
+                          max="17"
+                          value={customMaxAge}
+                          onChange={e => setCustomMaxAge(parseInt(e.target.value) || 17)}
+                          className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-zinc-300 mb-2">Category</label>
-                      <select
-                        value={customCategory}
-                        onChange={e => setCustomCategory(e.target.value)}
-                        className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                      >
-                        <option value="home">Home</option>
-                        <option value="room">Room</option>
-                        <option value="kitchen">Kitchen</option>
-                        <option value="pets">Pets</option>
-                        <option value="yard">Yard</option>
-                        <option value="family">Family</option>
-                        <option value="other">Other</option>
-                      </select>
+
+                    <div className="flex items-center gap-3 p-4 bg-zinc-900/30 rounded-lg border border-zinc-700/30">
+                      <input
+                        type="checkbox"
+                        id="saveAsTemplate"
+                        checked={saveAsTemplate}
+                        onChange={e => setSaveAsTemplate(e.target.checked)}
+                        className="w-5 h-5 rounded border-zinc-600 text-emerald-500 focus:ring-emerald-500/50 focus:ring-offset-zinc-900"
+                      />
+                      <label htmlFor="saveAsTemplate" className="text-sm text-zinc-300 flex-1">
+                        <span className="font-medium text-white">Save as template</span>
+                        <p className="text-xs text-zinc-500 mt-0.5">
+                          Make this chore available to all families (helps the ChoreCoins community!)
+                        </p>
+                      </label>
                     </div>
                   </div>
+
                   <button
                     onClick={addCustomChore}
-                    className="btn-glass w-full mt-4"
+                    disabled={!customTitle}
+                    className="btn-glass w-full mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     + Add Custom Chore
                   </button>

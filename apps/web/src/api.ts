@@ -31,6 +31,8 @@ export const Api = {
   
   // Chores
   templates: (age?: number) => api('/templates' + (age != null ? `?age=${age}` : '')).then(r => r.json()),
+  createTemplate: (payload: { title: string; description?: string; min_age: number; max_age: number; category: string; default_points: number; is_required_default: boolean }) =>
+    api('/templates', { method: 'POST', body: JSON.stringify(payload) }).then(r => r.json()),
   createChoresFromTemplates: (templateIds: string[], kid_user_id?: string, due_at?: number) =>
     api('/chores', { method: 'POST', body: JSON.stringify({ from_template_ids: templateIds, kid_user_id, due_at }) }).then(r => r.json()),
   createChoreFromTemplate: (kid_user_id: string, template_id: string) =>

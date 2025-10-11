@@ -568,6 +568,57 @@ app.get('/templates', async (c) => {
   return c.json({ ok: true, templates: res.results ?? [] });
 });
 
+// Create a new template (user-contributed)
+app.post('/templates', async (c) => {
+  const a = requireAuth(c);
+  if (a) return a;
+
+  const userId = c.get('userId');
+  const role = c.get('role');
+  
+  // Only parents can create templates for now (could expand to admins)
+  if (role !== 'parent' && role !== 'admin') {
+    return err(c, 403, 'forbidden', 'Only parents can create templates');
+  }
+
+  const body = await c.req.json<{
+    title: string;
+    description?: string;
+    min_age: number;
+    max_age: number;
+    category: string;
+    default_points: number;
+    is_required_default: boolean;
+  }>();
+
+  const { title, description, min_age, max_age, category, default_points, is_required_default } = body || {};
+
+  if (!title || min_age == null || max_age == null || !category || default_points == null) {
+    return err(c, 400, 'missing_fields', 'Title, ages, category, and points are required');
+  }
+
+  if (min_age < 3 || max_age > 17 || min_age > max_age) {
+    return err(c, 400, 'invalid_ages', 'Ages must be between 3-17 and min_age <= max_age');
+  }
+
+  const templateId = uid('tmpl');
+  const now = Date.now();
+
+  // Save as global template (available to all families)
+  await c.env.DB.prepare(`
+    INSERT INTO TaskTemplate (id, title, description, min_age, max_age, category, default_points, is_required_default, is_global)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+  `).bind(templateId, title, description || '', min_age, max_age, category, default_points, is_required_default ? 1 : 0).run();
+
+  await audit(c, {
+    action: 'template.create',
+    targetId: templateId,
+    meta: { title, category, min_age, max_age, contributed_by: userId }
+  });
+
+  return c.json({ ok: true, template_id: templateId, message: 'Template created and shared with community!' });
+});
+
 // --- POST /kids (parent creates kid) ---
 app.post('/kids', async (c) => {
   // Guards
