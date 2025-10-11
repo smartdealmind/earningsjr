@@ -18,6 +18,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             <Link to="/balances"><Button variant="ghost" size="sm">Balances</Button></Link>
             <Link to="/rules"><Button variant="ghost" size="sm">Rules</Button></Link>
             <Link to="/goals"><Button variant="ghost" size="sm">Goals</Button></Link>
+            <Link to="/achievements"><Button variant="ghost" size="sm">Achievements</Button></Link>
             <Link to="/requests"><Button variant="ghost" size="sm">Requests</Button></Link>
             <Link to="/admin"><Button variant="ghost" size="sm">Admin</Button></Link>
             <Button variant="outline" size="sm" onClick={cycle} title="Toggle theme">

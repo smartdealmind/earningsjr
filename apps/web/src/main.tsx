@@ -10,6 +10,7 @@ import Rules from './Rules'
 import Goals from './Goals'
 import Requests from './Requests'
 import Admin from './Admin'
+import Achievements from './Achievements'
 import Shell from './components/Shell'
 import { Toaster } from '@/components/ui/sonner'
 import { RequireAuth } from './guards'
@@ -28,6 +29,7 @@ const router = createBrowserRouter([
   { path: '/rules', element: <RequireAuth role="parent"><Shell><Rules /></Shell></RequireAuth> },
   { path: '/goals', element: <RequireAuth role="kid"><Shell><Goals /></Shell></RequireAuth> },
   { path: '/requests', element: <RequireAuth role="parent"><Shell><Requests /></Shell></RequireAuth> },
+  { path: '/achievements', element: <RequireAuth role="kid"><Shell><Achievements /></Shell></RequireAuth> },
   { path: '/admin', element: <RequireAuth><Shell><Admin /></Shell></RequireAuth> }
 ])
 
