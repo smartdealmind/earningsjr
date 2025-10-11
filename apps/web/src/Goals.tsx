@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Api } from './api';
 
 export default function Goals() {
-  const [me, setMe] = useState<any>(null);
   const [goals, setGoals] = useState<any[]>([]);
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState(2000); // cents
@@ -10,7 +9,6 @@ export default function Goals() {
   const [reqMsg, setReqMsg] = useState('');
 
   async function load() {
-    const m = await Api.me(); setMe(m);
     const g = await Api.goalsList(); setGoals(g.goals || []);
     const e = await Api.eligibility(); setElig(e);
   }

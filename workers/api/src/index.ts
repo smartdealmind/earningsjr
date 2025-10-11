@@ -10,12 +10,36 @@ type Vars = { userId?: string, role?: string };
 
 const app = new Hono<{ Bindings: Bindings, Variables: Vars }>();
 
-// CORS
+// CORS with Pages domain allowlist
+const ALLOWED_ORIGINS = [
+  'http://localhost:5173', // local dev
+  'https://chorecoins.pages.dev' // update after first Pages deploy
+];
+
+function isAllowedOrigin(origin?: string) {
+  if (!origin) return false;
+  try {
+    const u = new URL(origin);
+    // Allow *.pages.dev for previews and localhost for dev
+    return (
+      u.hostname.endsWith('.pages.dev') || 
+      u.hostname === 'localhost' ||
+      ALLOWED_ORIGINS.includes(origin)
+    );
+  } catch { return false; }
+}
+
 app.use('*', async (c, next) => {
-  c.header('Access-Control-Allow-Origin', '*');
-  c.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  const origin = c.req.header('Origin');
+  const allow = isAllowedOrigin(origin) ? origin : '';
+  if (allow) {
+    c.header('Access-Control-Allow-Origin', allow);
+    c.header('Vary', 'Origin');
+    c.header('Access-Control-Allow-Credentials', 'true');
+  }
+  c.header('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS');
   c.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-  c.header('Access-Control-Allow-Credentials', 'true');
+  c.header('Access-Control-Expose-Headers', 'Set-Cookie');
   if (c.req.method === 'OPTIONS') return c.text('', 204);
   await next();
 });
