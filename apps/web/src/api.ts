@@ -33,6 +33,10 @@ export const Api = {
   templates: (age?: number) => api('/templates' + (age != null ? `?age=${age}` : '')).then(r => r.json()),
   createChoresFromTemplates: (templateIds: string[], kid_user_id?: string, due_at?: number) =>
     api('/chores', { method: 'POST', body: JSON.stringify({ from_template_ids: templateIds, kid_user_id, due_at }) }).then(r => r.json()),
+  createChoreFromTemplate: (kid_user_id: string, template_id: string) =>
+    api('/chores', { method: 'POST', body: JSON.stringify({ from_template_ids: [template_id], kid_user_id }) }).then(r => r.json()),
+  createChore: (kid_user_id: string, title: string, points: number, category: string) =>
+    api('/chores', { method: 'POST', body: JSON.stringify({ kid_user_id, title, points, category }) }).then(r => r.json()),
   listChores: (status?: string) => api('/chores' + (status ? `?status=${status}` : '')).then(r => r.json()),
   approve: (id: string) => api(`/chores/${id}/approve`, { method: 'POST' }).then(r => r.json()),
   deny: (id: string) => api(`/chores/${id}/deny`, { method: 'POST' }).then(r => r.json()),
