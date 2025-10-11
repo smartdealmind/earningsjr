@@ -11,24 +11,28 @@ import Goals from './Goals'
 import Requests from './Requests'
 import Shell from './components/Shell'
 import { Toaster } from '@/components/ui/sonner'
+import { RequireAuth } from './guards'
+import { ErrorBoundary } from './ErrorBoundary'
 import './index.css'
 
 const Home = () => <Shell><App /></Shell>;
 
 const router = createBrowserRouter([
   { path: '/', element: <Home /> },
-  { path: '/onboarding', element: <Shell><Onboarding /></Shell> },
-  { path: '/approvals', element: <Shell><Approvals /></Shell> },
-  { path: '/kid', element: <Shell><KidDashboard /></Shell> },
-  { path: '/balances', element: <Shell><Balances /></Shell> },
-  { path: '/rules', element: <Shell><Rules /></Shell> },
-  { path: '/goals', element: <Shell><Goals /></Shell> },
-  { path: '/requests', element: <Shell><Requests /></Shell> }
+  { path: '/onboarding', element: <RequireAuth role="parent"><Shell><Onboarding /></Shell></RequireAuth> },
+  { path: '/approvals', element: <RequireAuth role="parent"><Shell><Approvals /></Shell></RequireAuth> },
+  { path: '/kid', element: <RequireAuth role="kid"><Shell><KidDashboard /></Shell></RequireAuth> },
+  { path: '/balances', element: <RequireAuth role="parent"><Shell><Balances /></Shell></RequireAuth> },
+  { path: '/rules', element: <RequireAuth role="parent"><Shell><Rules /></Shell></RequireAuth> },
+  { path: '/goals', element: <RequireAuth role="kid"><Shell><Goals /></Shell></RequireAuth> },
+  { path: '/requests', element: <RequireAuth role="parent"><Shell><Requests /></Shell></RequireAuth> }
 ])
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <RouterProvider router={router} />
-    <Toaster />
-  </React.StrictMode>,
+  <ErrorBoundary>
+    <React.StrictMode>
+      <RouterProvider router={router} />
+      <Toaster />
+    </React.StrictMode>
+  </ErrorBoundary>
 )

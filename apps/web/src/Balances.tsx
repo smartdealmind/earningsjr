@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Api } from './api';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 export default function Balances() {
   const [kids, setKids] = useState<any[]>([]);
@@ -24,6 +26,21 @@ export default function Balances() {
     if (!q.ok) setMsg(q.error || 'conversion_failed');
   }
 
+  async function makeChart(kidId: string) {
+    try {
+      const r = await Api.generateChart(kidId);
+      if (r.ok) {
+        const url = `${import.meta.env.VITE_API_BASE}${r.url}`;
+        window.open(url, '_blank');
+        toast.success('Chart generated! Opening in new tab...');
+      } else {
+        toast.error('Failed to generate chart');
+      }
+    } catch (err) {
+      toast.error('Error generating chart');
+    }
+  }
+
   return (
     <div style={{ maxWidth: 900, margin:'2rem auto' }}>
       <h1>Family Balances</h1>
@@ -34,7 +51,12 @@ export default function Balances() {
           {kids.map(k => (
             <li key={k.kid_user_id} style={{ padding:'8px 0', display:'flex', gap:12, alignItems:'center' }}>
               <button onClick={() => setSelectedKid(k.kid_user_id)}>{k.display_name}</button>
-              <div style={{ marginLeft:'auto' }}>{k.points_balance} pts</div>
+              <div style={{ marginLeft:'auto', display:'flex', gap:8, alignItems:'center' }}>
+                <span>{k.points_balance} pts</span>
+                <Button size="sm" variant="outline" onClick={() => makeChart(k.kid_user_id)}>
+                  📊 Reward Chart
+                </Button>
+              </div>
             </li>
           ))}
         </ul>

@@ -36,6 +36,7 @@ export const Api = {
     api('/requests', { method:'POST', body: JSON.stringify(payload) }).then(r => r.json()),
   requestsList: (status?: string) => api('/requests' + (status ? `?status=${status}` : '')).then(r => r.json()),
   requestsApprove: (id: string) => api(`/requests/${id}/approve`, { method:'POST' }).then(r => r.json()),
-  requestsDeny: (id: string) => api(`/requests/${id}/deny`, { method:'POST' }).then(r => r.json())
+  requestsDeny: (id: string) => api(`/requests/${id}/deny`, { method:'POST' }).then(r => r.json()),
+  generateChart: (kidId?: string) => api(`/charts/reward${kidId ? `?kid=${kidId}` : ''}`, { method:'POST' }).then(r => r.json())
 };
 

@@ -19,6 +19,10 @@ database_id = "a2a234d8-ee9a-4e07-a7a1-4e9da8e57a21"
 binding = "SESSION_KV"
 id = "e740282ef5744352bf5964730389aa6b"
 
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "chorecoins-assets"
+
 [triggers]
 crons = ["0 8 * * 1"]  # Monday 08:00 UTC
 
