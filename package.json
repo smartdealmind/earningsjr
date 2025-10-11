@@ -12,7 +12,9 @@
     "dev": "echo \"Use per-package dev scripts\"",
     "dev:api": "pnpm -C workers/api dev",
     "deploy:api": "pnpm -C workers/api deploy",
-    "typecheck:api": "pnpm -C workers/api typecheck"
+    "typecheck:api": "pnpm -C workers/api typecheck",
+    "dev:web": "pnpm -C apps/web dev",
+    "build:web": "pnpm -C apps/web build"
   }
 }
 
