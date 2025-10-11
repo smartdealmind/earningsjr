@@ -40,6 +40,30 @@ app.use('*', async (c, next) => {
   await next();
 });
 
+// --- Helper functions ---
+function requireAuth(c: any) {
+  const userId = c.get('userId');
+  if (!userId) return c.json({ ok: false, error: 'auth_required' }, 401);
+  return null;
+}
+function requireRole(c: any, roles: string[]) {
+  const role = c.get('role');
+  if (!role || !roles.includes(role)) return c.json({ ok: false, error: 'forbidden' }, 403);
+  return null;
+}
+async function getUserFamilyId(c: any, userId: string) {
+  const fm = await c.env.DB.prepare(
+    `SELECT family_id FROM FamilyMember WHERE user_id=? LIMIT 1`
+  ).bind(userId).first<{ family_id: string }>();
+  return (fm as any)?.family_id ?? null;
+}
+function nowMs() { return Date.now(); }
+
+function genKidEmail(kidId: string) {
+  // Kids may not have real email; use unique placeholder domain
+  return `${kidId}@kid.chorecoins.local`;
+}
+
 // Liveness + environment probe
 app.get('/healthz', async (c) => {
   let d1Ok = false;
@@ -205,6 +229,245 @@ app.get('/me', async (c) => {
   const familyId = (fm as any)?.family_id ?? null;
 
   return c.json({ ok: true, authenticated: true, user: u, familyId });
+});
+
+// --- GET /templates?age= ---
+app.get('/templates', async (c) => {
+  const ageStr = c.req.query('age');
+  const age = ageStr ? parseInt(ageStr, 10) : undefined;
+
+  let q = `SELECT id,title,description,min_age,max_age,category,default_points,is_required_default
+           FROM TaskTemplate WHERE is_global = 1`;
+  const args: any[] = [];
+  if (age != null && !Number.isNaN(age)) {
+    q += ` AND (min_age IS NULL OR min_age <= ?) AND (max_age IS NULL OR max_age >= ?)`;
+    args.push(age, age);
+  }
+  q += ` ORDER BY min_age NULLS FIRST, title`;
+
+  const res = await c.env.DB.prepare(q).bind(...args).all();
+  return c.json({ ok: true, templates: res.results ?? [] });
+});
+
+// --- POST /kids (parent creates kid) ---
+app.post('/kids', async (c) => {
+  // Guards
+  const a = requireAuth(c); if (a) return a;
+  const r = requireRole(c, ['parent']); if (r) return r;
+
+  const parentId = c.get('userId');
+  const familyId = await getUserFamilyId(c, parentId);
+  if (!familyId) return c.json({ ok: false, error: 'family_not_found' }, 400);
+
+  const body = await c.req.json<{ display_name: string; birthdate?: string; pin?: string }>();
+  const { display_name, birthdate, pin } = body || {};
+  if (!display_name) return c.json({ ok: false, error: 'missing_display_name' }, 400);
+
+  const kidUserId = uid('usr');
+  const kidProfileId = uid('kid');
+  const memberId = uid('mbr');
+  const now = nowMs();
+  const email = genKidEmail(kidUserId);
+  const pinPwd = await hashPassword(pin && pin.length ? pin : crypto.randomUUID().slice(0,6));
+
+  // Create user (role=kid), member, profile
+  await c.env.DB.prepare(`
+    INSERT INTO User (id,email,password_hash,first_name,last_name,role,created_at)
+    VALUES (?,?,?,?,?,'kid',?)
+  `).bind(kidUserId, email, pinPwd, display_name, null, now).run();
+
+  await c.env.DB.prepare(`
+    INSERT INTO FamilyMember (id,family_id,user_id,role,created_at)
+    VALUES (?,?,?,?,?)
+  `).bind(memberId, familyId, kidUserId, 'kid', now).run();
+
+  await c.env.DB.prepare(`
+    INSERT INTO KidProfile (id,user_id,family_id,birthdate,display_name,points_balance,created_at)
+    VALUES (?,?,?,?,?,0,?)
+  `).bind(kidProfileId, kidUserId, familyId, birthdate ?? null, display_name, now).run();
+
+  return c.json({ ok: true, kid_user_id: kidUserId, kid_profile_id: kidProfileId });
+});
+
+// --- POST /chores (create one or bulk from templates) ---
+app.post('/chores', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const parentId = c.get('userId');
+  const role = c.get('role');
+  if (!['parent','helper'].includes(role)) return c.json({ ok:false, error:'forbidden' }, 403);
+
+  const familyId = await getUserFamilyId(c, parentId);
+  if (!familyId) return c.json({ ok:false, error:'family_not_found' }, 400);
+
+  type Body =
+    | { title: string; description?: string; category?: string; is_required?: boolean; points?: number; kid_user_id?: string; due_at?: number; }
+    | { from_template_ids: string[]; kid_user_id?: string; due_at?: number; };
+
+  const b = await c.req.json<Body>();
+
+  const created: string[] = [];
+  const now = nowMs();
+
+  const make = async (p: { title:string; description?:string; category?:string; is_required?:boolean; points?:number; kid_user_id?:string; due_at?:number; }) => {
+    const id = uid('chr');
+    await c.env.DB.prepare(`
+      INSERT INTO Chore (id,family_id,kid_user_id,title,description,category,is_required,points,status,due_at,created_at,created_by,assigned_by_user_id)
+      VALUES (?,?,?,?,?,?,?,?, 'open', ?,?,?,?)
+    `).bind(
+      id, familyId, p.kid_user_id ?? null, p.title, p.description ?? null, p.category ?? null,
+      p.is_required ? 1 : 0, p.points ?? 0, p.due_at ?? null, now, parentId, parentId
+    ).run();
+    created.push(id);
+  };
+
+  if ('from_template_ids' in b) {
+    if (!b.from_template_ids?.length) return c.json({ ok:false, error:'missing_templates' }, 400);
+    const rows = await c.env.DB.prepare(
+      `SELECT id,title,description,category,default_points,is_required_default FROM TaskTemplate WHERE id IN (${b.from_template_ids.map(()=>'?').join(',')})`
+    ).bind(...b.from_template_ids).all<{title:string,description:string,category:string,default_points:number,is_required_default:number}>();
+    for (const t of (rows.results ?? [])) {
+      await make({
+        title: t.title,
+        description: t.description ?? undefined,
+        category: t.category ?? undefined,
+        is_required: t.is_required_default === 1,
+        points: t.default_points ?? 0,
+        kid_user_id: (b as any).kid_user_id,
+        due_at: (b as any).due_at
+      });
+    }
+  } else {
+    await make(b as any);
+  }
+
+  return c.json({ ok:true, chore_ids: created });
+});
+
+// --- GET /chores (parent view or kid view) ---
+app.get('/chores', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const userId = c.get('userId');
+  const role = c.get('role');
+
+  const status = c.req.query('status'); // optional
+  const where: string[] = [];
+  const args: any[] = [];
+
+  if (role === 'kid') {
+    where.push(`kid_user_id = ?`);
+    args.push(userId);
+  } else {
+    // parent/helper: scope to their family
+    const familyId = await getUserFamilyId(c, userId);
+    if (!familyId) return c.json({ ok:false, error:'family_not_found' }, 400);
+    where.push(`family_id = ?`);
+    args.push(familyId);
+  }
+  if (status) { where.push(`status = ?`); args.push(status); }
+
+  const q = `
+    SELECT id,family_id,kid_user_id,title,category,is_required,points,status,due_at,created_at
+    FROM Chore
+    ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
+    ORDER BY created_at DESC
+  `;
+  const res = await c.env.DB.prepare(q).bind(...args).all();
+  return c.json({ ok:true, chores: res.results ?? [] });
+});
+
+// --- POST /chores/:id/claim (kid claims chore) ---
+app.post('/chores/:id/claim', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const userId = c.get('userId');
+  const role = c.get('role');
+  if (role !== 'kid') return c.json({ ok:false, error:'for_kid_only' }, 403);
+
+  const id = c.req.param('id');
+  const now = nowMs();
+
+  // claim open chore for this kid (or unassigned)
+  const row = await c.env.DB.prepare(`SELECT family_id,kid_user_id,status FROM Chore WHERE id=?`).bind(id).first<any>();
+  if (!row) return c.json({ ok:false, error:'not_found' }, 404);
+  if (row.status !== 'open') return c.json({ ok:false, error:'not_open' }, 400);
+  if (row.kid_user_id && row.kid_user_id !== userId) return c.json({ ok:false, error:'not_assigned_to_you' }, 403);
+
+  await c.env.DB.prepare(`UPDATE Chore SET kid_user_id=?, status='claimed' WHERE id=?`).bind(userId, id).run();
+  await c.env.DB.prepare(`INSERT INTO ChoreEvent (id,chore_id,actor_user_id,type,created_at) VALUES (?,?,?,?,?)`)
+    .bind(uid('cev'), id, userId, 'claimed', now).run();
+
+  return c.json({ ok:true });
+});
+
+// --- POST /chores/:id/submit (kid submits chore) ---
+app.post('/chores/:id/submit', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const userId = c.get('userId'); const role = c.get('role');
+  if (role !== 'kid') return c.json({ ok:false, error:'for_kid_only' }, 403);
+
+  const id = c.req.param('id'); const now = nowMs();
+  const row = await c.env.DB.prepare(`SELECT kid_user_id,status FROM Chore WHERE id=?`).bind(id).first<any>();
+  if (!row || row.kid_user_id !== userId) return c.json({ ok:false, error:'not_found_or_not_yours' }, 404);
+  if (!['claimed','open'].includes(row.status)) return c.json({ ok:false, error:'bad_status' }, 400);
+
+  await c.env.DB.prepare(`UPDATE Chore SET status='submitted' WHERE id=?`).bind(id).run();
+  await c.env.DB.prepare(`INSERT INTO ChoreEvent (id,chore_id,actor_user_id,type,created_at) VALUES (?,?,?,?,?)`)
+    .bind(uid('cev'), id, userId, 'submitted', now).run();
+
+  return c.json({ ok:true });
+});
+
+// --- POST /chores/:id/approve (parent approves chore) ---
+app.post('/chores/:id/approve', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const r = requireRole(c, ['parent','helper']); if (r) return r;
+
+  const approverId = c.get('userId'); const id = c.req.param('id'); const now = nowMs();
+
+  const row = await c.env.DB.prepare(`SELECT family_id,kid_user_id,is_required,points,status FROM Chore WHERE id=?`).bind(id).first<any>();
+  if (!row) return c.json({ ok:false, error:'not_found' }, 404);
+  if (row.status !== 'submitted') return c.json({ ok:false, error:'not_submitted' }, 400);
+
+  // family guard: approver must belong to same family
+  const famApprover = await getUserFamilyId(c, approverId);
+  if (!famApprover || famApprover !== row.family_id) return c.json({ ok:false, error:'wrong_family' }, 403);
+
+  await c.env.DB.prepare(`UPDATE Chore SET status='approved' WHERE id=?`).bind(id).run();
+  await c.env.DB.prepare(`INSERT INTO ChoreEvent (id,chore_id,actor_user_id,type,created_at) VALUES (?,?,?,?,?)`)
+    .bind(uid('cev'), id, approverId, 'approved', now).run();
+
+  // credit points if not required
+  if (row.is_required === 0 && row.kid_user_id) {
+    await c.env.DB.prepare(`
+      INSERT INTO PointsLedger (id,kid_user_id,family_id,delta_points,reason,ref_id,created_at)
+      VALUES (?,?,?,?,?,?,?)
+    `).bind(uid('plg'), row.kid_user_id, row.family_id, row.points, 'chore_approved', id, now).run();
+
+    await c.env.DB.prepare(`UPDATE KidProfile SET points_balance = points_balance + ? WHERE user_id=?`)
+      .bind(row.points, row.kid_user_id).run();
+  }
+
+  return c.json({ ok:true });
+});
+
+// --- POST /chores/:id/deny (parent denies chore) ---
+app.post('/chores/:id/deny', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const r = requireRole(c, ['parent','helper']); if (r) return r;
+
+  const approverId = c.get('userId'); const id = c.req.param('id'); const now = nowMs();
+
+  const row = await c.env.DB.prepare(`SELECT family_id,status FROM Chore WHERE id=?`).bind(id).first<any>();
+  if (!row) return c.json({ ok:false, error:'not_found' }, 404);
+  if (row.status !== 'submitted') return c.json({ ok:false, error:'not_submitted' }, 400);
+
+  const famApprover = await getUserFamilyId(c, approverId);
+  if (!famApprover || famApprover !== row.family_id) return c.json({ ok:false, error:'wrong_family' }, 403);
+
+  await c.env.DB.prepare(`UPDATE Chore SET status='denied' WHERE id=?`).bind(id).run();
+  await c.env.DB.prepare(`INSERT INTO ChoreEvent (id,chore_id,actor_user_id,type,created_at) VALUES (?,?,?,?,?)`)
+    .bind(uid('cev'), id, approverId, 'denied', now).run();
+
+  return c.json({ ok:true });
 });
 
 export default app;
