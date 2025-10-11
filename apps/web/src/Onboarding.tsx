@@ -37,38 +37,76 @@ export default function Onboarding() {
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: '2rem auto' }}>
-      <h1>ChoreCoins Onboarding</h1>
-      <p>Logged in as: {me?.user?.email}</p>
+    <div className="section-glass max-w-6xl mx-auto">
+      <div className="relative mb-8">
+        <h1 className="text-3xl font-bold text-white relative z-10">ChoreCoins Onboarding</h1>
+        <div className="absolute inset-x-0 -top-6 h-20 bg-[radial-gradient(40%_60%_at_10%_0%,rgba(16,185,129,0.15),transparent)]" />
+      </div>
+      <p className="text-zinc-400 mb-8">Logged in as: <span className="text-zinc-200">{me?.user?.email}</span></p>
 
-      <div style={{ display: 'grid', gap: 16, gridTemplateColumns: '1fr 1fr' }}>
-        <section style={{ border: '1px solid #eee', borderRadius: 8, padding: 16 }}>
-          <h2>1) Create a Kid</h2>
-          <input placeholder="Kid display name" value={kidName} onChange={e => setKidName(e.target.value)} />
-          <input placeholder="Birthdate (YYYY-MM-DD)" value={kidDob} onChange={e => setKidDob(e.target.value)} />
-          <input placeholder="PIN (optional)" value={kidPin} onChange={e => setKidPin(e.target.value)} />
-          <button onClick={createKid}>Create Kid</button>
-          {kidId && <div>Kid ID: {kidId}</div>}
-        </section>
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="card-glass p-6">
+          <h2 className="text-xl font-semibold text-white mb-4">1) Create a Kid</h2>
+          <div className="space-y-3">
+            <input 
+              className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50" 
+              placeholder="Kid display name" 
+              value={kidName} 
+              onChange={e => setKidName(e.target.value)} 
+            />
+            <input 
+              className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50" 
+              placeholder="Birthdate (YYYY-MM-DD)" 
+              value={kidDob} 
+              onChange={e => setKidDob(e.target.value)} 
+            />
+            <input 
+              className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50" 
+              placeholder="PIN (optional)" 
+              value={kidPin} 
+              onChange={e => setKidPin(e.target.value)} 
+            />
+            <button className="btn-glass w-full" onClick={createKid}>Create Kid</button>
+            {kidId && <div className="text-emerald-400 text-sm">Kid ID: {kidId}</div>}
+          </div>
+        </div>
 
-        <section style={{ border: '1px solid #eee', borderRadius: 8, padding: 16 }}>
-          <h2>2) Pick Starter Templates</h2>
-          <label>Age: <input type="number" value={age} min={4} max={17} onChange={e => setAge(parseInt(e.target.value,10))} /></label>
-          <div style={{ maxHeight: 260, overflow: 'auto', border: '1px solid #ddd', borderRadius: 6, padding: 8, marginTop: 8 }}>
+        <div className="card-glass p-6">
+          <h2 className="text-xl font-semibold text-white mb-4">2) Pick Starter Templates</h2>
+          <label className="flex items-center gap-2 mb-4 text-zinc-300">
+            Age: 
+            <input 
+              type="number" 
+              value={age} 
+              min={4}
+              max={17}
+              onChange={e => setAge(parseInt(e.target.value,10))} 
+              className="w-20 bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-3 py-1 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+            />
+          </label>
+          <div className="max-h-64 overflow-auto rounded-lg border border-zinc-700/40 bg-zinc-900/20 p-2 mb-4">
             {templates.map(t => (
-              <label key={t.id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '6px 4px' }}>
-                <input type="checkbox" checked={picked.has(t.id)} onChange={() => toggle(t.id)} />
-                <div style={{ fontWeight: 600 }}>{t.title}</div>
-                <div style={{ marginLeft: 'auto', opacity: .7 }}>{t.default_points} pts {t.is_required_default ? '(required)' : ''}</div>
+              <label key={t.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-800/30 transition cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={picked.has(t.id)} 
+                  onChange={() => toggle(t.id)} 
+                  className="w-4 h-4 text-emerald-500 rounded border-zinc-600 bg-zinc-800 focus:ring-emerald-500"
+                />
+                <div className="font-semibold text-zinc-200">{t.title}</div>
+                <div className="ml-auto text-zinc-400 text-sm">
+                  {t.default_points} pts {t.is_required_default && <span className="text-emerald-400">(required)</span>}
+                </div>
               </label>
             ))}
           </div>
-          <button onClick={seedChores} disabled={!kidId}>Create Chores</button>
-        </section>
+          <button className="btn-glass w-full disabled:opacity-50 disabled:cursor-not-allowed" onClick={seedChores} disabled={!kidId}>
+            Create Chores
+          </button>
+        </div>
       </div>
 
-      {msg && <div style={{ marginTop: 16 }}>{msg}</div>}
+      {msg && <div className="mt-6 p-4 rounded-lg bg-zinc-800/40 border border-zinc-700/50 text-zinc-200 backdrop-blur-md">{msg}</div>}
     </div>
   );
 }
-

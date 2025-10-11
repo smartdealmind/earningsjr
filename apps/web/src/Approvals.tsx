@@ -23,27 +23,46 @@ export default function Approvals() {
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: '2rem auto' }}>
-      <h1>Parent Approvals</h1>
-      {rows.length === 0 && <p>No submitted chores.</p>}
-      <ul style={{ listStyle: 'none', padding: 0 }}>
+    <div className="section-glass max-w-6xl mx-auto">
+      <div className="relative mb-8">
+        <h1 className="text-3xl font-bold text-white relative z-10">Parent Approvals</h1>
+        <div className="absolute inset-x-0 -top-6 h-20 bg-[radial-gradient(40%_60%_at_10%_0%,rgba(16,185,129,0.15),transparent)]" />
+      </div>
+
+      {rows.length === 0 && <p className="text-zinc-400 text-center py-8">No submitted chores awaiting approval.</p>}
+      
+      <div className="space-y-3">
         {rows.map(c => (
-          <li key={c.id} style={{ border: '1px solid #eee', borderRadius: 8, padding: 12, marginBottom: 8, display: 'flex', gap: 12 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700 }}>{c.title}</div>
-              <div style={{ fontSize: 12, opacity: .8 }}>
-                {c.category || 'general'} • {c.points} pts • {c.is_required ? 'required' : 'paid'}
+          <div key={c.id} className="card-glass p-4 hover:scale-[1.01] transition-transform">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <div className="font-semibold text-white text-lg">{c.title}</div>
+                <div className="text-sm text-zinc-400 mt-1">
+                  <span className="inline-flex items-center gap-2">
+                    <span>{c.category || 'general'}</span>
+                    <span>•</span>
+                    <span className="text-emerald-400 font-medium">{c.points} pts</span>
+                    <span>•</span>
+                    <span className={c.is_required ? 'text-amber-400' : 'text-zinc-400'}>
+                      {c.is_required ? 'required' : 'paid'}
+                    </span>
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button className="btn-glass" onClick={() => doApprove(c.id)}>Approve</button>
+                <button className="btn-glass-secondary" onClick={() => doDeny(c.id)}>Deny</button>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => doApprove(c.id)}>Approve</button>
-              <button onClick={() => doDeny(c.id)}>Deny</button>
-            </div>
-          </li>
+          </div>
         ))}
-      </ul>
-      {msg && <div>{msg}</div>}
+      </div>
+
+      {msg && (
+        <div className="mt-6 p-4 rounded-lg bg-zinc-800/40 border border-zinc-700/50 text-zinc-200 backdrop-blur-md text-center">
+          {msg}
+        </div>
+      )}
     </div>
   );
 }
-

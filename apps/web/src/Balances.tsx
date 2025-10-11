@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Api } from './api';
-import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 export default function Balances() {
@@ -42,51 +41,78 @@ export default function Balances() {
   }
 
   return (
-    <div style={{ maxWidth: 900, margin:'2rem auto' }}>
-      <h1>Family Balances</h1>
+    <div className="section-glass max-w-6xl mx-auto">
+      <div className="relative mb-8">
+        <h1 className="text-3xl font-bold text-white relative z-10">Family Balances</h1>
+        <div className="absolute inset-x-0 -top-6 h-20 bg-[radial-gradient(40%_60%_at_10%_0%,rgba(16,185,129,0.15),transparent)]" />
+      </div>
 
-      <section style={{ border:'1px solid #eee', borderRadius:8, padding:16, marginBottom:16 }}>
-        <h2>Kids</h2>
-        <ul style={{ listStyle:'none', padding:0 }}>
+      <div className="card-glass p-6 mb-6">
+        <h2 className="text-xl font-semibold text-white mb-4">Kids</h2>
+        <div className="space-y-3">
           {kids.map(k => (
-            <li key={k.kid_user_id} style={{ padding:'8px 0', display:'flex', gap:12, alignItems:'center' }}>
-              <button onClick={() => setSelectedKid(k.kid_user_id)}>{k.display_name}</button>
-              <div style={{ marginLeft:'auto', display:'flex', gap:8, alignItems:'center' }}>
-                <span>{k.points_balance} pts</span>
-                <Button size="sm" variant="outline" onClick={() => makeChart(k.kid_user_id)}>
+            <div key={k.kid_user_id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-zinc-800/30 transition">
+              <button 
+                className="btn-glass-secondary text-sm"
+                onClick={() => setSelectedKid(k.kid_user_id)}
+              >
+                {k.display_name}
+              </button>
+              <div className="ml-auto flex items-center gap-3">
+                <span className="text-emerald-400 font-semibold">{k.points_balance} pts</span>
+                <button 
+                  className="btn-glass text-sm px-3 py-1"
+                  onClick={() => makeChart(k.kid_user_id)}
+                >
                   📊 Reward Chart
-                </Button>
+                </button>
               </div>
-            </li>
+            </div>
           ))}
-        </ul>
-      </section>
-
-      <section style={{ border:'1px solid #eee', borderRadius:8, padding:16, marginBottom:16 }}>
-        <h2>Converter</h2>
-        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-          <input type="number" value={points} onChange={e => setPoints(parseInt(e.target.value || '0',10))} />
-          <button onClick={convert}>Convert → $</button>
-          {quote && <div style={{ marginLeft: 12 }}>
-            ≈ {(quote.amount_cents/100).toFixed(2)} {quote.currency}
-          </div>}
         </div>
-        {msg && <div>{msg}</div>}
-      </section>
+      </div>
 
-      <section style={{ border:'1px solid #eee', borderRadius:8, padding:16 }}>
-        <h2>Ledger {selectedKid && `— ${kids.find(k => k.kid_user_id===selectedKid)?.display_name}`}</h2>
-        <ul style={{ listStyle:'none', padding:0 }}>
-          {ledger.map(l => (
-            <li key={l.id} style={{ display:'flex', gap:12, padding:'6px 0', borderBottom:'1px solid #f3f3f3' }}>
-              <div style={{ width:90 }}>{(l.delta_points > 0 ? '+' : '') + l.delta_points} pts</div>
-              <div style={{ flex:1 }}>{l.reason}</div>
-              <div style={{ opacity:.7 }}>{new Date(l.created_at).toLocaleString()}</div>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <div className="card-glass p-6 mb-6">
+        <h2 className="text-xl font-semibold text-white mb-4">Points Converter</h2>
+        <div className="flex items-center gap-3 flex-wrap">
+          <input 
+            type="number" 
+            value={points} 
+            onChange={e => setPoints(parseInt(e.target.value || '0',10))} 
+            className="w-32 bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+          />
+          <button className="btn-glass" onClick={convert}>Convert → $</button>
+          {quote && (
+            <div className="text-emerald-400 font-semibold text-lg">
+              ≈ ${(quote.amount_cents/100).toFixed(2)} {quote.currency}
+            </div>
+          )}
+        </div>
+        {msg && <div className="mt-3 text-amber-400 text-sm">{msg}</div>}
+      </div>
+
+      <div className="card-glass p-6">
+        <h2 className="text-xl font-semibold text-white mb-4">
+          Ledger {selectedKid && `— ${kids.find(k => k.kid_user_id===selectedKid)?.display_name}`}
+        </h2>
+        <div className="rounded-lg border border-zinc-800/50 bg-zinc-900/30 backdrop-blur overflow-hidden">
+          {ledger.length === 0 ? (
+            <div className="p-8 text-center text-zinc-400">No transactions yet.</div>
+          ) : (
+            <div className="divide-y divide-zinc-800/40">
+              {ledger.map(l => (
+                <div key={l.id} className="flex items-center gap-4 p-3 hover:bg-zinc-800/20 transition">
+                  <div className={`w-24 font-semibold ${l.delta_points > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {l.delta_points > 0 ? '+' : ''}{l.delta_points} pts
+                  </div>
+                  <div className="flex-1 text-zinc-200">{l.reason}</div>
+                  <div className="text-zinc-400 text-sm">{new Date(l.created_at).toLocaleString()}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
-

@@ -15,26 +15,39 @@ export default function Requests() {
   async function deny(id: string) { const r = await Api.requestsDeny(id); setMsg(r.ok?'Denied':'Error'); await load(); }
 
   return (
-    <div style={{ maxWidth: 900, margin:'2rem auto' }}>
-      <h1>Kid Requests</h1>
-      {rows.length === 0 && <p>No pending requests.</p>}
-      <ul style={{ listStyle:'none', padding:0 }}>
+    <div className="section-glass max-w-6xl mx-auto">
+      <div className="relative mb-8">
+        <h1 className="text-3xl font-bold text-white relative z-10">Kid Requests</h1>
+        <div className="absolute inset-x-0 -top-6 h-20 bg-[radial-gradient(40%_60%_at_10%_0%,rgba(16,185,129,0.15),transparent)]" />
+      </div>
+
+      {rows.length === 0 && <p className="text-zinc-400 text-center py-8">No pending requests.</p>}
+      
+      <div className="space-y-3">
         {rows.map(r => (
-          <li key={r.id} style={{ border:'1px solid #eee', borderRadius:8, padding:12, marginBottom:8, display:'flex', gap:12 }}>
-            <div style={{ flex:1 }}>
-              <div style={{ fontWeight:700 }}>{r.title}</div>
-              <div style={{ fontSize:12, opacity:.8 }}>{r.description}</div>
-              <div style={{ fontSize:12 }}>Suggested: {r.suggested_points ?? '—'} pts</div>
+          <div key={r.id} className="card-glass p-4 hover:scale-[1.01] transition-transform">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <div className="font-semibold text-white text-lg">{r.title}</div>
+                <div className="text-sm text-zinc-400 mt-1">{r.description}</div>
+                <div className="text-sm text-emerald-400 mt-2">
+                  Suggested: {r.suggested_points ?? '—'} pts
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button className="btn-glass" onClick={() => approve(r.id)}>Approve</button>
+                <button className="btn-glass-secondary" onClick={() => deny(r.id)}>Deny</button>
+              </div>
             </div>
-            <div style={{ display:'flex', gap:8 }}>
-              <button onClick={() => approve(r.id)}>Approve</button>
-              <button onClick={() => deny(r.id)}>Deny</button>
-            </div>
-          </li>
+          </div>
         ))}
-      </ul>
-      {msg && <div>{msg}</div>}
+      </div>
+
+      {msg && (
+        <div className="mt-6 p-4 rounded-lg bg-zinc-800/40 border border-zinc-700/50 text-zinc-200 backdrop-blur-md text-center">
+          {msg}
+        </div>
+      )}
     </div>
   );
 }
-
