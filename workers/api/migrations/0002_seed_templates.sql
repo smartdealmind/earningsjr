@@ -1,6 +1,4 @@
-PRAGMA foreign_keys = ON;
-PRAGMA user_version = 2;
-
+-- Seed data
 INSERT OR IGNORE INTO TaskTemplate (id, title, description, min_age, max_age, category, default_points, is_required_default, is_global) VALUES
   ('tmpl-bed','Make bed','Tidy your bed after waking up',4,7,'room',5,1,1),
   ('tmpl-toys','Put toys away','Put all toys back in their bins',4,7,'room',5,1,1),

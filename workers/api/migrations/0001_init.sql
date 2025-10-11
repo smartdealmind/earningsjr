@@ -1,7 +1,4 @@
 -- Schema: ChoreCoins v1
-PRAGMA foreign_keys = ON;
-PRAGMA user_version = 1;
-
 -- Users
 CREATE TABLE IF NOT EXISTS User (
   id TEXT PRIMARY KEY,
