@@ -20,30 +20,42 @@ app.use('*', async (c, next) => {
 app.get('/healthz', async (c) => {
   let d1Ok = false;
   let kvOk = false;
-  let dbUserVersion: number | null = null;
+  let userVersion: number | null = null;
+  let tablesOk = false;
+
+  const requiredTables = [
+    'User','Family','FamilyMember','KidProfile','ExchangeRule',
+    'TaskTemplate','Chore','ChoreEvent','PointsLedger','Goal','TaskRequest','TrustedLink'
+  ];
 
   try {
-    // lightweight D1 probe (works even with empty DB)
-    const r = await c.env.DB.prepare('PRAGMA user_version;').first<{ "user_version": number }>();
-    dbUserVersion = (r && (r as any).user_version) ?? null;
+    const vu = await c.env.DB.prepare('PRAGMA user_version;').first<{ user_version: number }>();
+    userVersion = vu ? (vu as any).user_version ?? null : null;
+
+    const res = await c.env.DB.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table';"
+    ).all<{ name: string }>();
+
+    const have = new Set((res?.results ?? []).map(r => r.name));
+    tablesOk = requiredTables.every(t => have.has(t));
     d1Ok = true;
   } catch {
     d1Ok = false;
   }
 
   try {
-    const testKey = `healthz:${Date.now()}`;
-    await c.env.SESSION_KV.put(testKey, 'ok', { expirationTtl: 60 });
-    const v = await c.env.SESSION_KV.get(testKey);
+    const k = `healthz:${Date.now()}`;
+    await c.env.SESSION_KV.put(k, 'ok', { expirationTtl: 60 });
+    const v = await c.env.SESSION_KV.get(k);
     kvOk = v === 'ok';
   } catch {
     kvOk = false;
   }
 
   return c.json({
-    ok: true,
+    ok: d1Ok && kvOk && tablesOk,
     service: 'chorecoins-api',
-    d1: { ok: d1Ok, user_version: dbUserVersion },
+    d1: { ok: d1Ok, user_version: userVersion, tables_ok: tablesOk },
     kv: { ok: kvOk }
   });
 });
