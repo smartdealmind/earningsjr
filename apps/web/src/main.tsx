@@ -13,6 +13,7 @@ import Shell from './components/Shell'
 import { Toaster } from '@/components/ui/sonner'
 import { RequireAuth } from './guards'
 import { ErrorBoundary } from './ErrorBoundary'
+import { ThemeProvider } from './theme/ThemeProvider'
 import './index.css'
 
 const Home = () => <Shell><App /></Shell>;
@@ -29,10 +30,12 @@ const router = createBrowserRouter([
 ])
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <ErrorBoundary>
-    <React.StrictMode>
-      <RouterProvider router={router} />
-      <Toaster />
-    </React.StrictMode>
-  </ErrorBoundary>
+  <React.StrictMode>
+    <ThemeProvider>
+      <ErrorBoundary>
+        <RouterProvider router={router} />
+        <Toaster />
+      </ErrorBoundary>
+    </ThemeProvider>
+  </React.StrictMode>
 )

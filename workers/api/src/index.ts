@@ -713,12 +713,13 @@ app.get('/eligibility', async (c) => {
 
   const since = Date.now() - 7*24*60*60*1000;
 
-  // Count approved chores in window
+  // Count approved chores using approval event time (more accurate)
   const rows = await c.env.DB.prepare(
-    `SELECT is_required, COUNT(*) AS n
-     FROM Chore
-     WHERE kid_user_id=? AND status='approved' AND created_at >= ?
-     GROUP BY is_required`
+    `SELECT C.is_required, COUNT(*) AS n
+     FROM Chore C
+     JOIN ChoreEvent E ON E.chore_id = C.id AND E.type='approved'
+     WHERE C.kid_user_id=? AND E.created_at >= ?
+     GROUP BY C.is_required`
   ).bind(kidId, since).all<{ is_required: number, n: number }>();
   let req = 0, total = 0;
   for (const r of (rows.results ?? [])) {
@@ -892,6 +893,101 @@ app.post('/requests/:id/deny', async (c) => {
   if (fam !== row.family_id) return c.json({ ok:false, error:'wrong_family' }, 403);
 
   await c.env.DB.prepare(`UPDATE TaskRequest SET status='denied', decided_at=?, decided_by=? WHERE id=?`).bind(now, uid, id).run();
+  return c.json({ ok:true });
+});
+
+// --- Trusted Relatives Invites ---
+
+// Create invite (parent)
+app.post('/trusted/invites', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const r = requireRole(c, ['parent']); if (r) return r;
+  const userId = c.get('userId');
+  const body = await c.req.json<{ scope: string; email?: string; ttl_hours?: number }>();
+  const familyId = await getUserFamilyId(c, userId);
+  
+  const id = uid('tiv');
+  const token = uid('ivt');
+  const now = Date.now();
+  const expires = now + ((body.ttl_hours ?? 168) * 3600 * 1000); // default 7 days
+
+  await c.env.DB.prepare(`
+    INSERT INTO TrustedInvite (id,family_id,scope,token,email,expires_at,created_at)
+    VALUES (?,?,?,?,?,?,?)
+  `).bind(id, familyId, body.scope, token, body.email ?? null, expires, now).run();
+
+  return c.json({ ok:true, invite: { token, scope: body.scope, expires_at: expires } });
+});
+
+// Register helper via invite (new account)
+app.post('/auth/register-helper', async (c) => {
+  const body = await c.req.json<{ token: string; email: string; password: string; first_name?: string }>();
+  
+  const inv = await c.env.DB.prepare(`SELECT * FROM TrustedInvite WHERE token=?`).bind(body.token).first<any>();
+  if (!inv || inv.expires_at < Date.now() || inv.accepted_by) {
+    return c.json({ ok:false, error:'invalid_or_expired' }, 400);
+  }
+
+  // Create helper user
+  const userId = uid('usr');
+  const now = Date.now();
+  const pwd = await hashPassword(body.password);
+  
+  await c.env.DB.prepare(`
+    INSERT INTO User (id,email,password_hash,first_name,last_name,role,created_at)
+    VALUES (?,?,?,?,?,'helper',?)
+  `).bind(userId, body.email, pwd, body.first_name ?? null, null, now).run();
+
+  // Link permission
+  const linkId = uid('tlk');
+  await c.env.DB.prepare(`
+    INSERT INTO TrustedLink (id,granting_family_id,trusted_user_id,scope,created_at)
+    VALUES (?,?,?,?,?)
+  `).bind(linkId, inv.family_id, userId, inv.scope, now).run();
+
+  await c.env.DB.prepare(`UPDATE TrustedInvite SET accepted_by=? WHERE id=?`).bind(userId, inv.id).run();
+
+  // Create session cookie
+  const token = uid('tok');
+  await c.env.SESSION_KV.put(
+    `sess:${token}`,
+    JSON.stringify({ userId, role:'helper', exp: Date.now() + 7*864e5 }),
+    { expirationTtl: 7*86400 }
+  );
+  c.header('Set-Cookie', cookieSerialize('cc_sess', encodeURIComponent(token), {
+    httpOnly:true, secure:true, sameSite:'Lax', path:'/', maxAge:7*86400
+  }));
+
+  return c.json({ ok:true, role:'helper' });
+});
+
+// Accept invite with existing account (login first)
+app.post('/trusted/accept', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const userId = c.get('userId');
+  const role = c.get('role');
+  
+  if (!['parent','helper','kid'].includes(role)) {
+    return c.json({ ok:false, error:'forbidden' }, 403);
+  }
+
+  const body = await c.req.json<{ token: string }>();
+  const inv = await c.env.DB.prepare(`SELECT * FROM TrustedInvite WHERE token=?`).bind(body.token).first<any>();
+  
+  if (!inv || inv.expires_at < Date.now() || inv.accepted_by) {
+    return c.json({ ok:false, error:'invalid_or_expired' }, 400);
+  }
+
+  const linkId = uid('tlk');
+  const now = Date.now();
+  
+  await c.env.DB.prepare(`
+    INSERT INTO TrustedLink (id,granting_family_id,trusted_user_id,scope,created_at)
+    VALUES (?,?,?,?,?)
+  `).bind(linkId, inv.family_id, userId, inv.scope, now).run();
+  
+  await c.env.DB.prepare(`UPDATE TrustedInvite SET accepted_by=? WHERE id=?`).bind(userId, inv.id).run();
+
   return c.json({ ok:true });
 });
 
