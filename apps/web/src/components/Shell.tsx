@@ -3,10 +3,10 @@ import { Button } from '@/components/ui/button'
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="sticky top-0 z-50 border-b bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-50 border-b border-border bg-white/90 backdrop-blur">
         <nav className="mx-auto max-w-6xl flex items-center gap-3 px-4 py-3">
-          <Link to="/" className="font-bold text-lg mr-4">ChoreCoins</Link>
+          <Link to="/" className="font-bold text-lg mr-4 text-slate-900">ChoreCoins</Link>
           <div className="ml-auto flex gap-2 flex-wrap">
             <Link to="/onboarding"><Button variant="ghost" size="sm">Onboarding</Button></Link>
             <Link to="/kid"><Button variant="ghost" size="sm">Kid</Button></Link>
