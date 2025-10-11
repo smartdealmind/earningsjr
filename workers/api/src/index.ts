@@ -226,7 +226,7 @@ app.post('/auth/register-parent', async (c) => {
   await c.env.SESSION_KV.put(`sess:${token}`, JSON.stringify(sess), { expirationTtl: 60 * 60 * 24 * 7 });
 
   c.header('Set-Cookie', cookieSerialize('cc_sess', encodeURIComponent(token), {
-    httpOnly: true, secure: true, sameSite: 'Lax', path: '/', maxAge: 60 * 60 * 24 * 7
+    httpOnly: true, secure: true, sameSite: 'None', path: '/', maxAge: 60 * 60 * 24 * 7
   }));
 
   await audit(c, { action: 'auth.register', targetId: userId, meta: { role: 'parent' }, familyId });
@@ -262,7 +262,7 @@ app.post('/auth/login', async (c) => {
   await c.env.SESSION_KV.put(`sess:${token}`, JSON.stringify(sess), { expirationTtl: 60 * 60 * 24 * 7 });
 
   c.header('Set-Cookie', cookieSerialize('cc_sess', encodeURIComponent(token), {
-    httpOnly: true, secure: true, sameSite: 'Lax', path: '/', maxAge: 60 * 60 * 24 * 7
+    httpOnly: true, secure: true, sameSite: 'None', path: '/', maxAge: 60 * 60 * 24 * 7
   }));
 
   await audit(c, { action: 'auth.login', targetId: (row as any).id, meta: { role } });
@@ -278,7 +278,7 @@ app.post('/auth/logout', async (c) => {
     const token = decodeURIComponent(match.split('=')[1] || '');
     if (token) await c.env.SESSION_KV.delete(`sess:${token}`);
   }
-  c.header('Set-Cookie', cookieSerialize('cc_sess', '', { httpOnly: true, secure: true, sameSite: 'Lax', path: '/', maxAge: 0 }));
+  c.header('Set-Cookie', cookieSerialize('cc_sess', '', { httpOnly: true, secure: true, sameSite: 'None', path: '/', maxAge: 0 }));
   return c.json({ ok: true });
 });
 
@@ -320,7 +320,7 @@ app.post('/auth/kid-login', async (c) => {
   await c.env.SESSION_KV.put(`sess:${token}`, JSON.stringify(sess), { expirationTtl: 60*60*24*7 });
 
   c.header('Set-Cookie', cookieSerialize('cc_sess', encodeURIComponent(token), {
-    httpOnly: true, secure: true, sameSite: 'Lax', path: '/', maxAge: 60 * 60 * 24 * 7
+    httpOnly: true, secure: true, sameSite: 'None', path: '/', maxAge: 60 * 60 * 24 * 7
   }));
   return c.json({ ok:true, kid_user_id: (row as any).id });
 });
@@ -975,7 +975,7 @@ app.post('/auth/register-helper', async (c) => {
     { expirationTtl: 7*86400 }
   );
   c.header('Set-Cookie', cookieSerialize('cc_sess', encodeURIComponent(token), {
-    httpOnly:true, secure:true, sameSite:'Lax', path:'/', maxAge:7*86400
+    httpOnly:true, secure:true, sameSite:'None', path:'/', maxAge:7*86400
   }));
 
   return c.json({ ok:true, role:'helper' });
