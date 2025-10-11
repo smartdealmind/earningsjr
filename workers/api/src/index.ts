@@ -216,6 +216,43 @@ app.post('/auth/logout', async (c) => {
   return c.json({ ok: true });
 });
 
+// --- Kid login (PIN) ---
+app.post('/auth/kid-login', async (c) => {
+  const body = await c.req.json<{ kid_user_id?: string; display_name?: string; pin: string }>();
+  const { kid_user_id, display_name, pin } = body || {};
+  if (!pin || (!kid_user_id && !display_name)) {
+    return c.json({ ok: false, error: 'Missing kid_user_id/display_name or pin' }, 400);
+  }
+
+  // Resolve kid user
+  let row: any;
+  if (kid_user_id) {
+    row = await c.env.DB.prepare(`SELECT U.id, U.password_hash, U.role 
+                                  FROM User U WHERE U.id=? AND U.role='kid'`)
+          .bind(kid_user_id).first();
+  } else {
+    row = await c.env.DB.prepare(`SELECT U.id, U.password_hash, U.role
+                                  FROM User U 
+                                  JOIN KidProfile K ON K.user_id = U.id
+                                  WHERE K.display_name=? AND U.role='kid' LIMIT 1`)
+          .bind(display_name).first();
+  }
+  if (!row) return c.json({ ok:false, error:'kid_not_found' }, 404);
+
+  const ok = await verifyPassword(pin, (row as any).password_hash);
+  if (!ok) return c.json({ ok:false, error:'invalid_pin' }, 401);
+
+  // Create session
+  const token = uid('tok');
+  const sess = { userId: (row as any).id as string, role: 'kid', exp: Date.now() + 1000*60*60*24*7 };
+  await c.env.SESSION_KV.put(`sess:${token}`, JSON.stringify(sess), { expirationTtl: 60*60*24*7 });
+
+  c.header('Set-Cookie', cookieSerialize('cc_sess', encodeURIComponent(token), {
+    httpOnly: true, secure: true, sameSite: 'Lax', path: '/', maxAge: 60 * 60 * 24 * 7
+  }));
+  return c.json({ ok:true, kid_user_id: (row as any).id });
+});
+
 // --- Me ---
 app.get('/me', async (c) => {
   const userId = c.get('userId');
@@ -470,4 +507,114 @@ app.post('/chores/:id/deny', async (c) => {
   return c.json({ ok:true });
 });
 
-export default app;
+// --- Ledger (parent-scoped or kid sees own) ---
+app.get('/ledger', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const userId = c.get('userId');
+  const role = c.get('role');
+
+  const kid = c.req.query('kid'); // optional
+  let kidId = kid || userId;
+
+  if (role !== 'kid') {
+    // parent/helper: ensure the requested kid belongs to my family
+    if (!kid) return c.json({ ok:false, error:'kid_required' }, 400);
+    const myFam = await getUserFamilyId(c, userId);
+    const kidFam = await c.env.DB.prepare(
+      `SELECT family_id FROM KidProfile WHERE user_id=?`
+    ).bind(kid).first<{ family_id: string }>();
+    if (!kidFam || (kidFam as any).family_id !== myFam) return c.json({ ok:false, error:'wrong_family' }, 403);
+    kidId = kid;
+  }
+
+  const rows = await c.env.DB.prepare(`
+    SELECT id, delta_points, reason, ref_id, created_at 
+    FROM PointsLedger
+    WHERE kid_user_id = ?
+    ORDER BY created_at DESC
+    LIMIT 200
+  `).bind(kidId).all();
+
+  return c.json({ ok:true, ledger: rows.results ?? [] });
+});
+
+// --- Kids balances (parent view) ---
+app.get('/kids/balances', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const r = requireRole(c, ['parent','helper']); if (r) return r;
+  const userId = c.get('userId');
+  const familyId = await getUserFamilyId(c, userId);
+  if (!familyId) return c.json({ ok:false, error:'family_not_found' }, 400);
+
+  const rows = await c.env.DB.prepare(`
+    SELECT K.user_id as kid_user_id, K.display_name, K.points_balance
+    FROM KidProfile K
+    WHERE K.family_id = ?
+    ORDER BY K.display_name
+  `).bind(familyId).all();
+
+  return c.json({ ok:true, kids: rows.results ?? [] });
+});
+
+// --- Exchange quote (points <-> money) ---
+app.post('/exchange/quote', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const userId = c.get('userId');
+
+  const familyId = await getUserFamilyId(c, userId);
+  if (!familyId) return c.json({ ok:false, error:'family_not_found' }, 400);
+
+  const ex = await c.env.DB.prepare(`
+    SELECT points_per_currency, currency_code, rounding FROM ExchangeRule WHERE family_id=?
+  `).bind(familyId).first<{ points_per_currency: number; currency_code: string; rounding: string }>();
+  if (!ex) return c.json({ ok:false, error:'exchange_rule_missing' }, 400);
+
+  const body = await c.req.json<{ points?: number; amount_cents?: number }>();
+  const { points, amount_cents } = body || {};
+  const ppc = (ex as any).points_per_currency as number;
+
+  let result: any = { currency: (ex as any).currency_code };
+
+  if (typeof points === 'number') {
+    const dollars = points / ppc; // e.g. 100 pts = $1
+    result.amount_cents = Math.floor(dollars * 100);
+  } else if (typeof amount_cents === 'number') {
+    const dollars = amount_cents / 100;
+    result.points = Math.ceil(dollars * ppc);
+  } else {
+    return c.json({ ok:false, error:'provide points or amount_cents' }, 400);
+  }
+
+  return c.json({ ok:true, ...result });
+});
+
+export default {
+  fetch: app.fetch,
+  scheduled: async (event: ScheduledEvent, env: Bindings, ctx: ExecutionContext) => {
+    // Scan families with weekly_allowance_points > 0
+    const fams = await env.DB.prepare(`
+      SELECT family_id, weekly_allowance_points FROM ExchangeRule WHERE weekly_allowance_points > 0
+    `).all<{ family_id: string, weekly_allowance_points: number }>();
+
+    const now = Date.now();
+
+    for (const f of (fams.results ?? [])) {
+      const kids = await env.DB.prepare(`
+        SELECT user_id FROM KidProfile WHERE family_id = ?
+      `).bind(f.family_id).all<{ user_id: string }>();
+
+      for (const k of (kids.results ?? [])) {
+        // credit points
+        const ledgerId = uid('plg');
+        await env.DB.prepare(`
+          INSERT INTO PointsLedger (id,kid_user_id,family_id,delta_points,reason,ref_id,created_at)
+          VALUES (?,?,?,?,?,?,?)
+        `).bind(ledgerId, k.user_id, f.family_id, (f as any).weekly_allowance_points, 'weekly_allowance', null, now).run();
+
+        await env.DB.prepare(`
+          UPDATE KidProfile SET points_balance = points_balance + ? WHERE user_id=?
+        `).bind((f as any).weekly_allowance_points, k.user_id).run();
+      }
+    }
+  }
+};
