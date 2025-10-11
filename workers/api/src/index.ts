@@ -295,7 +295,7 @@ app.post('/auth/send-verification', async (c) => {
     const emailHtml = getVerificationEmailHtml(code);
     
     const emailPayload = {
-      from: 'ChoreCoins <noreply@chorecoins.com>',
+      from: 'ChoreCoins <onboarding@resend.dev>', // TODO: Change to your verified domain
       to: [email],
       subject: `Your ChoreCoins verification code: ${code}`,
       html: emailHtml,
