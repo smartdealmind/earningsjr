@@ -53,7 +53,16 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           )}
         </nav>
       </header>
-      <main className={isHome ? 'pt-16' : 'mx-auto max-w-6xl px-4 py-6 pt-24'}>{children}</main>
+      <main className={isHome ? 'pt-16' : 'mx-auto max-w-6xl px-4 py-6 pt-24 min-h-[calc(100vh-8rem)]'}>{children}</main>
+      {!isHome && (
+        <footer className="border-t border-zinc-800/50 bg-zinc-900/20 backdrop-blur-md mt-12">
+          <div className="mx-auto max-w-6xl px-6 py-6 text-center">
+            <div className="text-xs text-zinc-500">
+              © {new Date().getFullYear()} ChoreCoins • Powered by <a href="https://smartdealmind.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition font-medium">SmartDealMind LLC</a>
+            </div>
+          </div>
+        </footer>
+      )}
     </div>
   )
 }

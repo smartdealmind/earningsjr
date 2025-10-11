@@ -141,14 +141,19 @@ export default function HomePublic() {
       </section>
 
       <footer className="border-t border-zinc-800/50 bg-zinc-900/20 backdrop-blur-md mt-16">
-        <div className="mx-auto max-w-6xl px-6 py-8 text-sm text-zinc-400 flex flex-wrap gap-3 items-center justify-center">
-          <span>© {new Date().getFullYear()} ChoreCoins</span>
-          <span className="opacity-50">•</span>
-          <Link to="/balances" className="hover:text-emerald-400 transition">Parent dashboard</Link>
-          <span className="opacity-50">•</span>
-          <Link to="/kid" className="hover:text-emerald-400 transition">Kid dashboard</Link>
-          <span className="opacity-50">•</span>
-          <Link to="/admin" className="hover:text-emerald-400 transition">Admin</Link>
+        <div className="mx-auto max-w-6xl px-6 py-8">
+          <div className="text-sm text-zinc-400 flex flex-wrap gap-3 items-center justify-center mb-3">
+            <span>© {new Date().getFullYear()} ChoreCoins</span>
+            <span className="opacity-50">•</span>
+            <Link to="/balances" className="hover:text-emerald-400 transition">Parent dashboard</Link>
+            <span className="opacity-50">•</span>
+            <Link to="/kid" className="hover:text-emerald-400 transition">Kid dashboard</Link>
+            <span className="opacity-50">•</span>
+            <Link to="/admin" className="hover:text-emerald-400 transition">Admin</Link>
+          </div>
+          <div className="text-xs text-zinc-500 text-center">
+            Powered by <a href="https://smartdealmind.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition font-medium">SmartDealMind LLC</a>
+          </div>
         </div>
       </footer>
     </div>
