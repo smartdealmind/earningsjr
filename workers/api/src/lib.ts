@@ -20,7 +20,7 @@ function b642ab(b64: string) {
   return bytes.buffer;
 }
 
-export async function hashPassword(password: string, iterations = 120_000) {
+export async function hashPassword(password: string, iterations = 100_000) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const key = await crypto.subtle.importKey(
     'raw',
