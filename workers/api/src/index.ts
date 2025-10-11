@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { uid, hashPassword, verifyPassword, cookieSerialize } from './lib';
 import { ok, err, readJson, rateLimit } from './http';
 import { audit } from './logger';
+import { bumpStatsAndMaybeAward } from './achievements';
 
 type Bindings = {
   DB: D1Database;
@@ -545,7 +546,9 @@ app.post('/chores/:id/approve', async (c) => {
     .bind(uid('cev'), id, approverId, 'approved', now).run();
 
   // credit points if not required
+  let pointsAwarded = 0;
   if (row.is_required === 0 && row.kid_user_id) {
+    pointsAwarded = row.points;
     await c.env.DB.prepare(`
       INSERT INTO PointsLedger (id,kid_user_id,family_id,delta_points,reason,ref_id,created_at)
       VALUES (?,?,?,?,?,?,?)
@@ -553,6 +556,11 @@ app.post('/chores/:id/approve', async (c) => {
 
     await c.env.DB.prepare(`UPDATE KidProfile SET points_balance = points_balance + ? WHERE user_id=?`)
       .bind(row.points, row.kid_user_id).run();
+  }
+
+  // Bump stats and check for badge awards
+  if (row.kid_user_id) {
+    await bumpStatsAndMaybeAward(c, row.kid_user_id, pointsAwarded);
   }
 
   await audit(c, { action: 'chore.approve', targetId: id, meta: { points: row.points, required: !!row.is_required } });
@@ -1236,6 +1244,32 @@ app.post('/admin/flags', async (c) => {
   await audit(c, {action:'flag.update', meta: body});
   
   return ok(c, {key: body.key, enabled: body.enabled});
+});
+
+// --- Achievements & Badges ---
+
+// Kid (or parent-scoped) view of badges and stats
+app.get('/achievements', async (c) => {
+  const a = requireAuth(c); if (a) return a;
+  const role = c.get('role'); const userId = c.get('userId');
+  const kidId = c.req.query('kid') || (role === 'kid' ? userId : null);
+  if (!kidId) return c.json({ ok:false, error:'kid_required' }, 400);
+
+  // family guard
+  const famUser = role === 'kid' ? kidId : userId;
+  const fam = await getUserFamilyId(c, famUser);
+  const kidFam = await c.env.DB.prepare(`SELECT family_id FROM KidProfile WHERE user_id=?`).bind(kidId).first<any>();
+  if (!kidFam || kidFam.family_id !== fam) return c.json({ ok:false, error:'wrong_family' }, 403);
+
+  const stats = await c.env.DB.prepare(`SELECT * FROM KidStats WHERE kid_user_id=?`).bind(kidId).first<any>();
+  const awards = await c.env.DB.prepare(`
+    SELECT A.key, A.title, A.description, A.icon, B.awarded_at, B.meta_json
+    FROM Achievement A
+    LEFT JOIN BadgeAward B ON B.achievement_key=A.key AND B.kid_user_id=?
+    ORDER BY A.key
+  `).bind(kidId).all<any>();
+
+  return c.json({ ok:true, stats: stats ?? { total_approved:0,total_points_earned:0,streak_days:0 }, badges: awards.results ?? [] });
 });
 
 // --- Admin API: Audit Log & Metrics ---
