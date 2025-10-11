@@ -6,13 +6,22 @@ export default function Onboarding() {
   const [age, setAge] = useState<number>(8);
   const [templates, setTemplates] = useState<any[]>([]);
   const [picked, setPicked] = useState<Set<string>>(new Set());
-  const [kidName, setKidName] = useState('');
+  const [kidFirstName, setKidFirstName] = useState('');
+  const [kidLastName, setKidLastName] = useState('');
   const [kidDob, setKidDob] = useState('');
   const [kidPin, setKidPin] = useState('');
   const [kidId, setKidId] = useState<string | null>(null);
   const [msg, setMsg] = useState('');
 
-  useEffect(() => { Api.me().then(setMe); }, []);
+  useEffect(() => { 
+    Api.me().then(data => {
+      setMe(data);
+      // Auto-populate kid's last name from parent
+      if (data?.user?.last_name) {
+        setKidLastName(data.user.last_name);
+      }
+    }); 
+  }, []);
   useEffect(() => { Api.templates(age).then(j => setTemplates(j.templates || [])); }, [age]);
 
   function toggle(id: string) {
@@ -22,8 +31,13 @@ export default function Onboarding() {
   }
 
   async function createKid() {
+    if (!kidFirstName || !kidLastName) {
+      setMsg('First and last name are required');
+      return;
+    }
     setMsg('Creating kid...');
-    const r = await Api.createKid(kidName || 'Kid', kidDob || undefined, kidPin || undefined);
+    const displayName = `${kidFirstName} ${kidLastName}`;
+    const r = await Api.createKid(displayName, kidDob || undefined, kidPin || undefined);
     if (r.ok) { setKidId(r.kid_user_id); setMsg('Kid created'); }
     else setMsg('Error: ' + (r.error || 'unknown'));
   }
@@ -48,26 +62,61 @@ export default function Onboarding() {
         <div className="card-glass p-6">
           <h2 className="text-xl font-semibold text-white mb-4">1) Create a Kid</h2>
           <div className="space-y-3">
-            <input 
-              className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50" 
-              placeholder="Kid display name" 
-              value={kidName} 
-              onChange={e => setKidName(e.target.value)} 
-            />
-            <input 
-              className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50" 
-              placeholder="Birthdate (YYYY-MM-DD)" 
-              value={kidDob} 
-              onChange={e => setKidDob(e.target.value)} 
-            />
-            <input 
-              className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50" 
-              placeholder="PIN (optional)" 
-              value={kidPin} 
-              onChange={e => setKidPin(e.target.value)} 
-            />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-2">
+                  First Name <span className="text-red-400">*</span>
+                </label>
+                <input 
+                  className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50" 
+                  placeholder="Emma" 
+                  value={kidFirstName} 
+                  onChange={e => setKidFirstName(e.target.value)} 
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-2">
+                  Last Name <span className="text-red-400">*</span>
+                </label>
+                <input 
+                  className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50" 
+                  placeholder="Smith" 
+                  value={kidLastName} 
+                  onChange={e => setKidLastName(e.target.value)} 
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-300 mb-2">
+                Birthdate (optional)
+              </label>
+              <input 
+                type="date"
+                className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50" 
+                value={kidDob} 
+                onChange={e => setKidDob(e.target.value)} 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-300 mb-2">
+                PIN (optional, 4-6 digits)
+              </label>
+              <input 
+                type="text"
+                maxLength={6}
+                className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50" 
+                placeholder="1234" 
+                value={kidPin} 
+                onChange={e => setKidPin(e.target.value.replace(/\D/g, ''))} 
+              />
+              <p className="text-xs text-zinc-500 mt-1">
+                If left blank, a random PIN will be generated
+              </p>
+            </div>
             <button className="btn-glass w-full" onClick={createKid}>Create Kid</button>
-            {kidId && <div className="text-emerald-400 text-sm">Kid ID: {kidId}</div>}
+            {kidId && <div className="text-emerald-400 text-sm">✓ Kid created: {kidFirstName} {kidLastName}</div>}
           </div>
         </div>
 

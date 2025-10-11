@@ -1,29 +1,31 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Api } from '../api';
 import { toast } from 'sonner';
 import { GlassPanel } from '@/components/Glass';
 
 export default function Register() {
   const navigate = useNavigate();
+  const [step, setStep] = useState<'form' | 'verify'>('form');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [familyName, setFamilyName] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [devCode, setDevCode] = useState(''); // For showing code in dev mode
 
   // Validation
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isStrongPassword = (pwd: string) => pwd.length >= 8 && /[A-Z]/.test(pwd) && /[0-9]/.test(pwd);
 
-  async function handleRegister(e: React.FormEvent) {
+  async function handleSendCode(e: React.FormEvent) {
     e.preventDefault();
     
     // Validation
-    if (!email || !password || !familyName) {
+    if (!email || !password || !firstName || !lastName || !familyName) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -45,17 +47,56 @@ export default function Register() {
 
     setLoading(true);
     try {
+      const r = await Api.sendVerification(email);
+
+      if (r.ok) {
+        toast.success('Verification code sent to your email!');
+        if (r.code) {
+          // Dev mode - show the code
+          setDevCode(r.code);
+          toast.info(`Dev mode: Code is ${r.code}`, { duration: 10000 });
+        }
+        setStep('verify');
+      } else {
+        toast.error(r.error || 'Failed to send verification code');
+      }
+    } catch (err) {
+      toast.error('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleVerifyAndRegister(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!verificationCode || verificationCode.length !== 6) {
+      toast.error('Please enter the 6-digit code');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Step 1: Verify email
+      const v = await Api.verifyEmail(email, verificationCode);
+
+      if (!v.ok) {
+        toast.error('Invalid or expired code');
+        setLoading(false);
+        return;
+      }
+
+      // Step 2: Register account
       const r = await Api.registerParent({
         email,
         password,
-        first_name: firstName || undefined,
-        last_name: lastName || undefined,
+        first_name: firstName,
+        last_name: lastName,
         family_name: familyName
       });
 
       if (r.ok) {
-        toast.success('Registration successful! Redirecting to onboarding...');
-        // Auto-logged in via cookie, redirect to onboarding
+        toast.success('Account created! Redirecting to onboarding...');
         setTimeout(() => navigate('/onboarding'), 1500);
       } else {
         toast.error(r.error || 'Registration failed');
@@ -65,6 +106,103 @@ export default function Register() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleResendCode() {
+    setLoading(true);
+    try {
+      const r = await Api.sendVerification(email);
+
+      if (r.ok) {
+        toast.success('New code sent!');
+        if (r.code) {
+          setDevCode(r.code);
+          toast.info(`Dev mode: Code is ${r.code}`, { duration: 10000 });
+        }
+      } else {
+        toast.error(r.error || 'Failed to resend code');
+      }
+    } catch (err) {
+      toast.error('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (step === 'verify') {
+    return (
+      <div className="min-h-screen flex items-center justify-center py-12">
+        <GlassPanel className="max-w-md mx-auto w-full">
+          <div className="relative mb-8">
+            <h1 className="text-3xl font-bold text-white relative z-10 text-center">
+              Check Your Email
+            </h1>
+            <div className="absolute inset-x-0 -top-6 h-20 bg-[radial-gradient(40%_60%_at_50%_0%,rgba(16,185,129,0.15),transparent)]" />
+          </div>
+
+          <div className="text-center mb-6">
+            <p className="text-zinc-400 mb-2">
+              We sent a 6-digit verification code to:
+            </p>
+            <p className="text-emerald-400 font-medium">{email}</p>
+          </div>
+
+          {devCode && (
+            <div className="mb-6 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+              <p className="text-xs text-emerald-400 text-center">
+                DEV MODE: Your code is <span className="font-mono font-bold text-lg">{devCode}</span>
+              </p>
+            </div>
+          )}
+
+          <form onSubmit={handleVerifyAndRegister} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-300 mb-2">
+                Verification Code
+              </label>
+              <input
+                type="text"
+                maxLength={6}
+                value={verificationCode}
+                onChange={e => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-3 text-zinc-100 text-center text-2xl font-mono tracking-widest placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                placeholder="000000"
+                autoFocus
+                required
+              />
+              <p className="text-xs text-zinc-500 mt-2 text-center">
+                Code expires in 10 minutes
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || verificationCode.length !== 6}
+              className="btn-glass w-full py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Verifying...' : 'Verify & Create Account'}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center space-y-3">
+            <button
+              onClick={handleResendCode}
+              disabled={loading}
+              className="text-sm text-emerald-400 hover:text-emerald-300 transition disabled:opacity-50"
+            >
+              Didn't receive it? Resend code
+            </button>
+            
+            <button
+              onClick={() => setStep('form')}
+              className="block w-full text-sm text-zinc-500 hover:text-zinc-400 transition"
+            >
+              ← Change email address
+            </button>
+          </div>
+        </GlassPanel>
+      </div>
+    );
   }
 
   return (
@@ -81,7 +219,7 @@ export default function Register() {
           Start teaching your kids real money skills today
         </p>
 
-        <form onSubmit={handleRegister} className="space-y-4">
+        <form onSubmit={handleSendCode} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-zinc-300 mb-2">
               Email <span className="text-red-400">*</span>
@@ -99,7 +237,7 @@ export default function Register() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-zinc-300 mb-2">
-                First Name
+                First Name <span className="text-red-400">*</span>
               </label>
               <input
                 type="text"
@@ -107,11 +245,12 @@ export default function Register() {
                 onChange={e => setFirstName(e.target.value)}
                 className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                 placeholder="John"
+                required
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-zinc-300 mb-2">
-                Last Name
+                Last Name <span className="text-red-400">*</span>
               </label>
               <input
                 type="text"
@@ -119,6 +258,7 @@ export default function Register() {
                 onChange={e => setLastName(e.target.value)}
                 className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                 placeholder="Smith"
+                required
               />
             </div>
           </div>
@@ -173,7 +313,7 @@ export default function Register() {
             disabled={loading}
             className="btn-glass w-full py-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Creating account...' : 'Create Family Account'}
+            {loading ? 'Sending code...' : 'Continue'}
           </button>
         </form>
 
@@ -193,4 +333,3 @@ export default function Register() {
     </div>
   );
 }
-

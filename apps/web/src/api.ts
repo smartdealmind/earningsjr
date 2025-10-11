@@ -11,7 +11,11 @@ export async function api(path: string, init: RequestInit = {}) {
 
 export const Api = {
   // Auth
-  registerParent: (payload: { email: string; password: string; first_name?: string; last_name?: string; family_name: string }) =>
+  sendVerification: (email: string) =>
+    api('/auth/send-verification', { method: 'POST', body: JSON.stringify({ email }) }).then(r => r.json()),
+  verifyEmail: (email: string, code: string) =>
+    api('/auth/verify-email', { method: 'POST', body: JSON.stringify({ email, code }) }).then(r => r.json()),
+  registerParent: (payload: { email: string; password: string; first_name: string; last_name: string; family_name: string }) =>
     api('/auth/register-parent', { method: 'POST', body: JSON.stringify(payload) }).then(r => r.json()),
   login: (payload: { email: string; password: string }) =>
     api('/auth/login', { method: 'POST', body: JSON.stringify(payload) }).then(r => r.json()),

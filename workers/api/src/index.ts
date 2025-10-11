@@ -193,6 +193,56 @@ app.get('/healthz', async (c) => {
 // optional: version
 app.get('/version', (c) => c.json({ version: '0.0.1' }));
 
+// --- Auth: Send Verification Code ---
+app.post('/auth/send-verification', async (c) => {
+  const ip = c.req.header('CF-Connecting-IP') || 'unknown';
+  if (!(await rateLimit(c, `verify:${ip}`, 5, 60))) {
+    return err(c, 429, 'rate_limited', 'Too many attempts, try again soon');
+  }
+
+  const { email } = await c.req.json<{ email: string }>();
+  if (!email) return c.json({ ok: false, error: 'email_required' }, 400);
+
+  // Generate 6-digit code
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const key = `verify:${email}`;
+  
+  // Store code in KV for 10 minutes
+  await c.env.SESSION_KV.put(key, code, { expirationTtl: 600 });
+
+  // TODO: Send email via MailChannels/Resend
+  // For now, log to console (in production, send real email)
+  console.log(`Verification code for ${email}: ${code}`);
+
+  // In dev/testing, return the code (remove in production!)
+  const isDev = c.req.header('host')?.includes('localhost') || c.req.header('host')?.includes('127.0.0.1');
+  
+  return c.json({ 
+    ok: true, 
+    message: 'Verification code sent to email',
+    ...(isDev ? { code } : {}) // Only return code in dev mode
+  });
+});
+
+// --- Auth: Verify Email Code ---
+app.post('/auth/verify-email', async (c) => {
+  const { email, code } = await c.req.json<{ email: string; code: string }>();
+  if (!email || !code) return c.json({ ok: false, error: 'missing_fields' }, 400);
+
+  const key = `verify:${email}`;
+  const storedCode = await c.env.SESSION_KV.get(key);
+
+  if (!storedCode || storedCode !== code) {
+    return c.json({ ok: false, error: 'invalid_or_expired_code' }, 400);
+  }
+
+  // Mark as verified (store a flag for 1 hour)
+  await c.env.SESSION_KV.put(`verified:${email}`, 'true', { expirationTtl: 3600 });
+  await c.env.SESSION_KV.delete(key); // Delete used code
+
+  return c.json({ ok: true, verified: true });
+});
+
 // --- Auth: Register parent + family bootstrap ---
 app.post('/auth/register-parent', async (c) => {
   // Rate limit
@@ -202,9 +252,17 @@ app.post('/auth/register-parent', async (c) => {
   }
 
   try {
-    const body = await c.req.json<{ email: string, password: string, first_name?: string, last_name?: string, family_name: string }>();
+    const body = await c.req.json<{ email: string, password: string, first_name: string, last_name: string, family_name: string }>();
     const { email, password, first_name, last_name, family_name } = body || {};
-    if (!email || !password || !family_name) return c.json({ ok: false, error: 'Missing fields' }, 400);
+    if (!email || !password || !first_name || !last_name || !family_name) {
+      return c.json({ ok: false, error: 'Missing required fields' }, 400);
+    }
+
+    // Check email verification
+    const verified = await c.env.SESSION_KV.get(`verified:${email}`);
+    if (!verified) {
+      return c.json({ ok: false, error: 'email_not_verified' }, 400);
+    }
 
     const userId = uid('usr');
     const familyId = uid('fam');
@@ -256,6 +314,9 @@ app.post('/auth/register-parent', async (c) => {
   }));
 
   await audit(c, { action: 'auth.register', targetId: userId, meta: { role: 'parent' }, familyId });
+
+  // Clean up verification flag
+  await c.env.SESSION_KV.delete(`verified:${email}`);
 
   return c.json({ ok: true, userId, familyId });
   } catch (err: any) {
