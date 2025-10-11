@@ -64,6 +64,21 @@ function genKidEmail(kidId: string) {
   return `${kidId}@kid.chorecoins.local`;
 }
 
+// Root route
+app.get('/', (c) => {
+  return c.json({
+    name: 'ChoreCoins API',
+    version: '0.0.1',
+    endpoints: {
+      health: '/healthz',
+      version: '/version',
+      auth: ['/auth/register-parent', '/auth/login', '/auth/logout', '/auth/kid-login'],
+      resources: ['/me', '/templates', '/kids', '/chores', '/goals', '/requests', '/exchange/rules', '/eligibility', '/ledger', '/kids/balances', '/exchange/quote']
+    },
+    docs: 'https://github.com/smartdealmind/chorecoins'
+  });
+});
+
 // Liveness + environment probe
 app.get('/healthz', async (c) => {
   let d1Ok = false;
