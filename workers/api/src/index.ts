@@ -1797,19 +1797,33 @@ app.patch('/reminders/prefs', async (c) => {
 app.get('/reminders', async (c) => {
   const a = requireAuth(c); if (a) return a;
   const role = c.get('role'); const userId = c.get('userId');
-  const fam = await getUserFamilyId(c, userId);
-
+  
   let where = ''; let arg: any[] = [];
-  if (role === 'kid') { where = 'WHERE kid_user_id=?'; arg = [userId]; }
-  else { where = 'WHERE family_id=?'; arg = [fam]; }
+  if (role === 'kid') { 
+    where = 'WHERE R.kid_user_id=?'; 
+    arg = [userId]; 
+  } else {
+    // Parent/helper: need family_id
+    const fam = await getUserFamilyId(c, userId);
+    if (!fam) {
+      return c.json({ ok: false, error: 'family_not_found' }, 400);
+    }
+    where = 'WHERE R.family_id=?'; 
+    arg = [fam]; 
+  }
 
-  const rows = await c.env.DB.prepare(`
-    SELECT R.*, K.display_name
-    FROM ReminderEvent R JOIN KidProfile K ON K.user_id=R.kid_user_id
-    ${where}
-    ORDER BY created_at DESC LIMIT 200
-  `).bind(...arg).all();
-  return c.json({ ok:true, reminders: rows.results ?? [] });
+  try {
+    const rows = await c.env.DB.prepare(`
+      SELECT R.*, K.display_name
+      FROM ReminderEvent R JOIN KidProfile K ON K.user_id=R.kid_user_id
+      ${where}
+      ORDER BY R.created_at DESC LIMIT 200
+    `).bind(...arg).all();
+    return c.json({ ok:true, reminders: rows.results ?? [] });
+  } catch (error: any) {
+    console.error('Reminders query error:', error);
+    return c.json({ ok: false, error: 'database_error', message: error?.message || 'Failed to fetch reminders' }, 500);
+  }
 });
 
 // POST /reminders/:id/ack (parent/helper to mark handled)
