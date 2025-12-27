@@ -1,5 +1,3 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import Balances from '../Balances'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -19,11 +17,11 @@ export default function Kids() {
           <TabsTrigger value="achievements">Achievements</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="balances">
+        <TabsContent value="balances" className="mt-4">
           <Balances />
         </TabsContent>
         
-        <TabsContent value="goals">
+        <TabsContent value="goals" className="mt-4">
           <Card>
             <CardHeader>
               <CardTitle>Goals</CardTitle>
@@ -36,7 +34,7 @@ export default function Kids() {
           </Card>
         </TabsContent>
         
-        <TabsContent value="achievements">
+        <TabsContent value="achievements" className="mt-4">
           <Card>
             <CardHeader>
               <CardTitle>Achievements</CardTitle>

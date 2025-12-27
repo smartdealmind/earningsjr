@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import Rules from '../Rules'
 import Reminders from '../Reminders'
@@ -20,15 +19,15 @@ export default function Settings() {
           <TabsTrigger value="requests">Requests</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="rules">
+        <TabsContent value="rules" className="mt-4">
           <Rules />
         </TabsContent>
         
-        <TabsContent value="reminders">
+        <TabsContent value="reminders" className="mt-4">
           <Reminders />
         </TabsContent>
         
-        <TabsContent value="requests">
+        <TabsContent value="requests" className="mt-4">
           <Requests />
         </TabsContent>
       </Tabs>
