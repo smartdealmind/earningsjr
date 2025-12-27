@@ -21,13 +21,20 @@ The API is configured to use a custom domain: **`api.earningsjr.com`**
 
 ### Setting Up the Custom Domain
 
+**⚠️ Important:** The Worker project is named `earningsjr-api` (different from Pages project `earningsjr`)
+
 **In Cloudflare Dashboard:**
 
-1. Go to: Workers & Pages → `earningsjr-api` → Settings → Triggers
-2. Add Custom Domain:
+1. Go to: **Workers & Pages** → **Workers** (NOT Pages)
+2. Click on **`earningsjr-api`** project
+3. Go to: **Settings** → **Triggers**
+4. Scroll to **Custom Domains** section
+5. Click **"Add Custom Domain"**
+6. Enter:
    - Domain: `api.earningsjr.com`
    - Zone: `earningsjr.com` (must be managed by Cloudflare)
-3. Cloudflare will automatically create the DNS record
+7. Click **"Add Custom Domain"**
+8. Cloudflare will automatically create the DNS record and provision SSL
 
 **DNS Configuration:**
 - Cloudflare will create a CNAME or A record automatically
