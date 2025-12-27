@@ -122,3 +122,4 @@ Your deployment setup:
 
 Just push to `main` and let GitHub Actions handle it. No Cloudflare Dashboard configuration needed.
 
+# Trigger Cloudflare build
