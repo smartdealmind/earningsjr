@@ -49,13 +49,7 @@ export default function Register() {
       const r = await Api.sendVerification(email);
 
       if (r.ok) {
-        // Dev mode: code is returned directly
-        if (r.code) {
-          toast.success(`DEV MODE: Your code is ${r.code}`);
-          console.log('Verification code:', r.code);
-        } else {
-          toast.success('Verification code sent to your email!');
-        }
+        toast.success('Verification code sent to your email!');
         setStep('verify');
       } else {
         toast.error(r.error || 'Failed to send verification code');
@@ -114,13 +108,7 @@ export default function Register() {
       const r = await Api.sendVerification(email);
 
       if (r.ok) {
-        // Dev mode: code is returned directly
-        if (r.code) {
-          toast.success(`DEV MODE: Your code is ${r.code}`);
-          console.log('Verification code:', r.code);
-        } else {
-          toast.success('New code sent to your email!');
-        }
+        toast.success('New code sent to your email!');
       } else {
         toast.error(r.error || 'Failed to resend code');
       }

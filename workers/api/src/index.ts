@@ -326,8 +326,12 @@ app.post('/auth/send-verification', async (c) => {
   try {
     const emailHtml = getVerificationEmailHtml(code);
     
-    // Use custom sender email if set, otherwise default to Resend test email
+    // Use verified domain email (required for sending to any email address)
     const senderEmail = c.env.SENDER_EMAIL || 'EarningsJr <onboarding@resend.dev>';
+    
+    // Debug: Log what sender email is being used
+    console.log(`Sending email with sender: ${senderEmail}`);
+    console.log(`SENDER_EMAIL env var: ${c.env.SENDER_EMAIL ? 'SET' : 'NOT SET'}`);
     
     const emailPayload = {
       from: senderEmail,
