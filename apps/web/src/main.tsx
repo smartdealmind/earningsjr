@@ -23,6 +23,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { RequireAuth } from './guards'
 import { ErrorBoundary } from './ErrorBoundary'
 import { ThemeProvider } from './theme/ThemeProvider'
+import { ActingAsProvider } from './contexts/ActingAsContext'
 import './index.css'
 import './lib/analytics' // Initialize PostHog
 
@@ -79,10 +80,12 @@ const router = createBrowserRouter([
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ThemeProvider>
-      <ErrorBoundary>
-        <RouterProvider router={router} />
-        <Toaster />
-      </ErrorBoundary>
+      <ActingAsProvider>
+        <ErrorBoundary>
+          <RouterProvider router={router} />
+          <Toaster />
+        </ErrorBoundary>
+      </ActingAsProvider>
     </ThemeProvider>
   </React.StrictMode>
 )

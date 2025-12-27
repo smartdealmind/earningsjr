@@ -1,9 +1,25 @@
 const API = import.meta.env.VITE_API_BASE ?? '';
 
+// Get actingAsKidId from sessionStorage for API calls
+function getActingAsKidId(): string | null {
+  if (typeof window !== 'undefined') {
+    return sessionStorage.getItem('actingAsKidId')
+  }
+  return null
+}
+
 export async function api(path: string, init: RequestInit = {}) {
+  const actingAsKidId = getActingAsKidId()
+  const headers: HeadersInit = { 'Content-Type': 'application/json', ...(init.headers || {}) }
+  
+  // Add actingAsKidId header if parent is acting as kid
+  if (actingAsKidId) {
+    headers['X-Acting-As-Kid-Id'] = actingAsKidId
+  }
+  
   const res = await fetch(API + path, {
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(init.headers || {}) },
+    headers,
     ...init
   });
   return res;

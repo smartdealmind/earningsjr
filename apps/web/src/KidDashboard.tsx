@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Api } from './api';
+import { useActingAs } from '@/contexts/ActingAsContext';
+import { toast } from 'sonner';
 
 export default function KidDashboard() {
   const [me, setMe] = useState<any>(null);
@@ -7,6 +9,7 @@ export default function KidDashboard() {
   const [msg, setMsg] = useState('');
   const [name, setName] = useState('');
   const [pin, setPin] = useState('');
+  const { actingAsKidId, actingAsKidName } = useActingAs();
 
   async function load() {
     setMe(await Api.me());
@@ -18,7 +21,7 @@ export default function KidDashboard() {
     return j.chores || [];
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [actingAsKidId]);
 
   async function doKidLogin() {
     setMsg('Logging in...');
@@ -35,7 +38,18 @@ export default function KidDashboard() {
   async function submit(id: string) {
     setMsg('Submitting...');
     const r = await (await fetch(`${import.meta.env.VITE_API_BASE}/chores/${id}/submit`, { method: 'POST', credentials: 'include' })).json();
-    setMsg(r.ok ? 'Submitted' : 'Error'); await load();
+    if (r.ok) {
+      if (actingAsKidId) {
+        toast.success('Chore completed and auto-approved! Points added.');
+      } else {
+        toast.success('Chore submitted! Waiting for parent approval.');
+      }
+      setMsg('');
+    } else {
+      toast.error('Failed to submit chore');
+      setMsg('Error');
+    }
+    await load();
   }
 
   return (
@@ -45,7 +59,7 @@ export default function KidDashboard() {
         <div className="absolute inset-x-0 -top-6 h-20 bg-[radial-gradient(40%_60%_at_10%_0%,rgba(16,185,129,0.15),transparent)]" />
       </div>
 
-      {!me?.authenticated || me?.user?.role !== 'kid' ? (
+      {!me?.authenticated || (me?.user?.role !== 'kid' && !actingAsKidId) ? (
         <div className="card-glass p-6 max-w-md mx-auto">
           <h2 className="text-xl font-semibold text-white mb-4">Kid Login (PIN)</h2>
           <div className="space-y-3">
@@ -91,10 +105,19 @@ export default function KidDashboard() {
                         <span className="text-zinc-300">status: <span className="font-medium">{c.status}</span></span>
                       </span>
                     </div>
+                    {actingAsKidId && ['open','claimed'].includes(c.status) && (
+                      <div className="mt-2 text-xs text-emerald-400/80">
+                        ✓ Will auto-approve when completed
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     {c.status === 'open' && <button className="btn-glass" onClick={() => claim(c.id)}>Claim</button>}
-                    {['open','claimed'].includes(c.status) && <button className="btn-glass" onClick={() => submit(c.id)}>Submit</button>}
+                    {['open','claimed'].includes(c.status) && (
+                      <button className="btn-glass" onClick={() => submit(c.id)}>
+                        {actingAsKidId ? 'Complete' : 'Submit'}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

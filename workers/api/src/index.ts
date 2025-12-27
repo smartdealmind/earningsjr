@@ -15,7 +15,7 @@ type Bindings = {
   STRIPE_WEBHOOK_SECRET?: string;
 };
 
-type Vars = { userId?: string, role?: string };
+type Vars = { userId?: string, role?: string, actingAsKidId?: string };
 
 const app = new Hono<{ Bindings: Bindings, Variables: Vars }>();
 
@@ -50,7 +50,7 @@ app.use('*', async (c, next) => {
     c.header('Access-Control-Allow-Credentials', 'true');
   }
   c.header('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS');
-  c.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  c.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Acting-As-Kid-Id');
   c.header('Access-Control-Expose-Headers', 'Set-Cookie');
   if (c.req.method === 'OPTIONS') return c.text('', 204);
   await next();
@@ -73,6 +73,23 @@ app.use('*', async (c, next) => {
       }
     }
   }
+  
+  // Extract "Act As Kid" header if present (parent acting as kid)
+  const actingAsKidId = c.req.header('X-Acting-As-Kid-Id');
+  if (actingAsKidId) {
+    // Verify parent is in same family as kid
+    const userId = c.get('userId');
+    const role = c.get('role');
+    if (userId && (role === 'parent' || role === 'helper')) {
+      // Verify kid belongs to parent's family
+      const kidFam = await getUserFamilyId(c, actingAsKidId);
+      const parentFam = await getUserFamilyId(c, userId);
+      if (kidFam && parentFam && kidFam === parentFam) {
+        c.set('actingAsKidId', actingAsKidId);
+      }
+    }
+  }
+  
   await next();
 });
 
@@ -772,6 +789,25 @@ app.get('/me', async (c) => {
   const userId = c.get('userId');
   if (!userId) return c.json({ ok: false, authenticated: false }, 200);
 
+  const actingAsKidId = c.get('actingAsKidId');
+  
+  // If parent is acting as kid, return kid's info
+  if (actingAsKidId) {
+    const kid = await c.env.DB.prepare(`SELECT user_id, display_name, points_balance FROM KidProfile WHERE user_id=?`).bind(actingAsKidId).first<any>();
+    if (kid) {
+      return c.json({ 
+        ok: true, 
+        authenticated: true, 
+        user: { 
+          id: kid.user_id, 
+          first_name: kid.display_name,
+          role: 'kid'
+        },
+        actingAsKid: true
+      });
+    }
+  }
+
   const u = await c.env.DB.prepare(`SELECT id,email,first_name,last_name,role,created_at FROM User WHERE id=?`).bind(userId).first();
   if (!u) return c.json({ ok: false, authenticated: false }, 200);
 
@@ -950,12 +986,17 @@ app.get('/chores', async (c) => {
   const a = requireAuth(c); if (a) return a;
   const userId = c.get('userId');
   const role = c.get('role');
+  const actingAsKidId = c.get('actingAsKidId');
 
   const status = c.req.query('status'); // optional
   const where: string[] = [];
   const args: any[] = [];
 
-  if (role === 'kid') {
+  // If parent is acting as kid, show that kid's chores
+  if (actingAsKidId) {
+    where.push(`kid_user_id = ?`);
+    args.push(actingAsKidId);
+  } else if (role === 'kid') {
     where.push(`kid_user_id = ?`);
     args.push(userId);
   } else {
@@ -982,7 +1023,11 @@ app.post('/chores/:id/claim', async (c) => {
   const a = requireAuth(c); if (a) return a;
   const userId = c.get('userId');
   const role = c.get('role');
-  if (role !== 'kid') return c.json({ ok:false, error:'for_kid_only' }, 403);
+  const actingAsKidId = c.get('actingAsKidId');
+  
+  // Allow if kid OR parent acting as kid
+  const effectiveKidId = actingAsKidId || (role === 'kid' ? userId : null);
+  if (!effectiveKidId) return c.json({ ok:false, error:'for_kid_only' }, 403);
 
   const id = c.req.param('id');
   const now = nowMs();
@@ -991,11 +1036,11 @@ app.post('/chores/:id/claim', async (c) => {
   const row = await c.env.DB.prepare(`SELECT family_id,kid_user_id,status FROM Chore WHERE id=?`).bind(id).first<any>();
   if (!row) return c.json({ ok:false, error:'not_found' }, 404);
   if (row.status !== 'open') return c.json({ ok:false, error:'not_open' }, 400);
-  if (row.kid_user_id && row.kid_user_id !== userId) return c.json({ ok:false, error:'not_assigned_to_you' }, 403);
+  if (row.kid_user_id && row.kid_user_id !== effectiveKidId) return c.json({ ok:false, error:'not_assigned_to_you' }, 403);
 
-  await c.env.DB.prepare(`UPDATE Chore SET kid_user_id=?, status='claimed' WHERE id=?`).bind(userId, id).run();
+  await c.env.DB.prepare(`UPDATE Chore SET kid_user_id=?, status='claimed' WHERE id=?`).bind(effectiveKidId, id).run();
   await c.env.DB.prepare(`INSERT INTO ChoreEvent (id,chore_id,actor_user_id,type,created_at) VALUES (?,?,?,?,?)`)
-    .bind(uid('cev'), id, userId, 'claimed', now).run();
+    .bind(uid('cev'), id, effectiveKidId, 'claimed', now).run();
 
   return c.json({ ok:true });
 });
@@ -1003,17 +1048,52 @@ app.post('/chores/:id/claim', async (c) => {
 // --- POST /chores/:id/submit (kid submits chore) ---
 app.post('/chores/:id/submit', async (c) => {
   const a = requireAuth(c); if (a) return a;
-  const userId = c.get('userId'); const role = c.get('role');
-  if (role !== 'kid') return c.json({ ok:false, error:'for_kid_only' }, 403);
+  const userId = c.get('userId'); 
+  const role = c.get('role');
+  const actingAsKidId = c.get('actingAsKidId');
+  
+  // Allow if kid OR parent acting as kid
+  const effectiveKidId = actingAsKidId || (role === 'kid' ? userId : null);
+  if (!effectiveKidId) return c.json({ ok:false, error:'for_kid_only' }, 403);
 
-  const id = c.req.param('id'); const now = nowMs();
-  const row = await c.env.DB.prepare(`SELECT kid_user_id,status FROM Chore WHERE id=?`).bind(id).first<any>();
-  if (!row || row.kid_user_id !== userId) return c.json({ ok:false, error:'not_found_or_not_yours' }, 404);
+  const id = c.req.param('id'); 
+  const now = nowMs();
+  const row = await c.env.DB.prepare(`SELECT family_id,kid_user_id,is_required,points,status FROM Chore WHERE id=?`).bind(id).first<any>();
+  if (!row || row.kid_user_id !== effectiveKidId) return c.json({ ok:false, error:'not_found_or_not_yours' }, 404);
   if (!['claimed','open'].includes(row.status)) return c.json({ ok:false, error:'bad_status' }, 400);
 
   await c.env.DB.prepare(`UPDATE Chore SET status='submitted' WHERE id=?`).bind(id).run();
   await c.env.DB.prepare(`INSERT INTO ChoreEvent (id,chore_id,actor_user_id,type,created_at) VALUES (?,?,?,?,?)`)
-    .bind(uid('cev'), id, userId, 'submitted', now).run();
+    .bind(uid('cev'), id, effectiveKidId, 'submitted', now).run();
+
+  // Auto-approve if parent is acting as kid
+  if (actingAsKidId) {
+    const approverId = userId; // Parent who is acting as kid
+    await c.env.DB.prepare(`UPDATE Chore SET status='approved' WHERE id=?`).bind(id).run();
+    await c.env.DB.prepare(`INSERT INTO ChoreEvent (id,chore_id,actor_user_id,type,created_at) VALUES (?,?,?,?,?)`)
+      .bind(uid('cev'), id, approverId, 'approved', now).run();
+
+    // credit points if not required
+    let pointsAwarded = 0;
+    if (row.is_required === 0 && row.kid_user_id) {
+      pointsAwarded = row.points;
+      // Store that this was auto-approved by parent acting as kid
+      await c.env.DB.prepare(`
+        INSERT INTO PointsLedger (id,kid_user_id,family_id,delta_points,reason,ref_id,created_at)
+        VALUES (?,?,?,?,?,?,?)
+      `).bind(uid('plg'), row.kid_user_id, row.family_id, row.points, 'chore_approved', id, now).run();
+
+      await c.env.DB.prepare(`UPDATE KidProfile SET points_balance = points_balance + ? WHERE user_id=?`)
+        .bind(row.points, row.kid_user_id).run();
+    }
+
+    // Bump stats and check for badge awards
+    if (row.kid_user_id) {
+      await bumpStatsAndMaybeAward(c, row.kid_user_id, pointsAwarded);
+    }
+
+    await audit(c, { action: 'chore.approve', targetId: id, meta: { points: row.points, required: !!row.is_required, auto_approved: true } });
+  }
 
   return c.json({ ok:true });
 });
@@ -1088,11 +1168,17 @@ app.get('/ledger', async (c) => {
   const a = requireAuth(c); if (a) return a;
   const userId = c.get('userId');
   const role = c.get('role');
+  const actingAsKidId = c.get('actingAsKidId');
 
   const kid = c.req.query('kid'); // optional
-  let kidId = kid || userId;
+  let kidId: string;
 
-  if (role !== 'kid') {
+  // If parent is acting as kid, use that kid's ID
+  if (actingAsKidId) {
+    kidId = actingAsKidId;
+  } else if (role === 'kid') {
+    kidId = userId;
+  } else {
     // parent/helper: ensure the requested kid belongs to my family
     if (!kid) return c.json({ ok:false, error:'kid_required' }, 400);
     const myFam = await getUserFamilyId(c, userId);
@@ -1259,13 +1345,17 @@ app.get('/eligibility', async (c) => {
 // --- Create goal ---
 app.post('/goals', async (c) => {
   const a = requireAuth(c); if (a) return a;
-  const userId = c.get('userId'); const role = c.get('role');
+  const userId = c.get('userId'); 
+  const role = c.get('role');
+  const actingAsKidId = c.get('actingAsKidId');
   const body = await c.req.json<{ kid_user_id?: string; title: string; target_amount_cents: number }>();
-  const kidId = role === 'kid' ? userId : body.kid_user_id;
+  
+  // If parent is acting as kid, use that kid's ID
+  const kidId = actingAsKidId || (role === 'kid' ? userId : body.kid_user_id);
   if (!kidId) return c.json({ ok:false, error:'kid_required' }, 400);
 
-  // same-family guard for parent
-  if (role !== 'kid') {
+  // same-family guard for parent (unless acting as kid)
+  if (!actingAsKidId && role !== 'kid') {
     const myFam = await getUserFamilyId(c, userId);
     const kidFam = await c.env.DB.prepare(`SELECT family_id FROM KidProfile WHERE user_id=?`).bind(kidId).first<any>();
     if (!kidFam || kidFam.family_id !== myFam) return c.json({ ok:false, error:'wrong_family' }, 403);
@@ -1309,14 +1399,20 @@ app.post('/goals/:id/cancel', async (c) => {
 // --- List goals + ETA ---
 app.get('/goals', async (c) => {
   const a = requireAuth(c); if (a) return a;
-  const userId = c.get('userId'); const role = c.get('role');
-  const kid = c.req.query('kid') || (role === 'kid' ? userId : null);
+  const userId = c.get('userId'); 
+  const role = c.get('role');
+  const actingAsKidId = c.get('actingAsKidId');
+  
+  // If parent is acting as kid, use that kid's ID
+  const kid = actingAsKidId || c.req.query('kid') || (role === 'kid' ? userId : null);
   if (!kid) return c.json({ ok:false, error:'kid_required' }, 400);
 
-  // family guard
-  const myFam = await getUserFamilyId(c, role === 'kid' ? kid : userId);
-  const kidFam = await c.env.DB.prepare(`SELECT family_id, points_balance FROM KidProfile WHERE user_id=?`).bind(kid).first<any>();
-  if (!kidFam || kidFam.family_id !== myFam) return c.json({ ok:false, error:'wrong_family' }, 403);
+  // family guard (skip if acting as kid - already verified in middleware)
+  if (!actingAsKidId) {
+    const myFam = await getUserFamilyId(c, role === 'kid' ? kid : userId);
+    const kidFam = await c.env.DB.prepare(`SELECT family_id, points_balance FROM KidProfile WHERE user_id=?`).bind(kid).first<any>();
+    if (!kidFam || kidFam.family_id !== myFam) return c.json({ ok:false, error:'wrong_family' }, 403);
+  }
 
   const goals = await c.env.DB.prepare(`
     SELECT id,title,target_amount_cents,currency_code,target_points,status,created_at,achieved_at

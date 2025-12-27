@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Api } from './api';
 import { toast } from 'sonner';
+import { useActingAs } from '@/contexts/ActingAsContext';
+import { useNavigate } from 'react-router-dom';
 
 export default function Balances() {
   const [kids, setKids] = useState<any[]>([]);
@@ -9,6 +11,8 @@ export default function Balances() {
   const [points, setPoints] = useState<number>(250);
   const [quote, setQuote] = useState<any>(null);
   const [msg, setMsg] = useState('');
+  const { actingAsKidId, setActingAsKid } = useActingAs();
+  const navigate = useNavigate();
 
   async function load() {
     const j = await Api.kidsBalances();
@@ -42,10 +46,14 @@ export default function Balances() {
 
   // Format reason text to be human-readable
   function formatReason(reason: string): string {
-    return reason
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
+    switch (reason) {
+      case 'weekly_allowance': return 'Weekly Allowance';
+      case 'chore_approved': return 'Chore Completed';
+      case 'badge_bonus': return 'Achievement Bonus';
+      case 'goal_payout': return 'Goal Payout';
+      case 'payout_request': return 'Payout Request';
+      default: return reason.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+    }
   }
 
   // Format date/time for mobile
@@ -83,6 +91,26 @@ export default function Balances() {
                   <span className="hidden sm:inline">📊 Reward Chart</span>
                   <span className="sm:hidden">📊</span>
                 </button>
+                {actingAsKidId === k.kid_user_id ? (
+                  <button
+                    className="btn-glass bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs md:text-sm px-2 md:px-3 py-1"
+                    onClick={() => setActingAsKid(null, null)}
+                  >
+                    <span className="hidden sm:inline">🎭 Acting As</span>
+                    <span className="sm:hidden">🎭</span>
+                  </button>
+                ) : (
+                  <button
+                    className="btn-glass text-xs md:text-sm px-2 md:px-3 py-1"
+                    onClick={() => {
+                      setActingAsKid(k.kid_user_id, k.display_name);
+                      navigate('/kid');
+                    }}
+                  >
+                    <span className="hidden sm:inline">Act As</span>
+                    <span className="sm:hidden">🎭</span>
+                  </button>
+                )}
               </div>
             </div>
           ))}
