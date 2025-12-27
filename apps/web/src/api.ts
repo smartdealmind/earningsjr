@@ -12,7 +12,7 @@ export async function api(path: string, init: RequestInit = {}) {
 export const Api = {
   // Auth
   sendVerification: (email: string) =>
-    api('/auth/send-verification', { method: 'POST', body: JSON.stringify({ email }) }).then(r => r.json()),
+    api('/auth/send-verification-dev', { method: 'POST', body: JSON.stringify({ email }) }).then(r => r.json()), // Using dev endpoint until Resend is configured
   verifyEmail: (email: string, code: string) =>
     api('/auth/verify-email', { method: 'POST', body: JSON.stringify({ email, code }) }).then(r => r.json()),
   registerParent: (payload: { email: string; password: string; first_name: string; last_name: string; family_name: string }) =>

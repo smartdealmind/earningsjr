@@ -279,6 +279,32 @@ function getVerificationEmailHtml(code: string): string {
   `.trim();
 }
 
+// --- Auth: Send Verification Code (DEV MODE - returns code directly) ---
+app.post('/auth/send-verification-dev', async (c) => {
+  const ip = c.req.header('CF-Connecting-IP') || 'unknown';
+  if (!(await rateLimit(c, `verify:${ip}`, 10, 60))) {
+    return err(c, 429, 'rate_limited', 'Too many attempts, try again soon');
+  }
+
+  const { email } = await c.req.json<{ email: string }>();
+  if (!email) return c.json({ ok: false, error: 'email_required' }, 400);
+
+  // Generate 6-digit code
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const key = `verify:${email}`;
+  
+  // Store code in KV for 10 minutes
+  await c.env.SESSION_KV.put(key, code, { expirationTtl: 600 });
+
+  // DEV MODE: Return code directly instead of sending email
+  console.log(`[DEV MODE] Verification code for ${email}: ${code}`);
+  return c.json({ 
+    ok: true, 
+    message: 'Verification code generated (dev mode)',
+    code: code // Only in dev mode!
+  });
+});
+
 // --- Auth: Send Verification Code ---
 app.post('/auth/send-verification', async (c) => {
   const ip = c.req.header('CF-Connecting-IP') || 'unknown';
