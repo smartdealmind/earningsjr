@@ -1901,39 +1901,6 @@ async function emitDueReminders(env: Bindings) {
   }
 }
 
-export default {
-  fetch: app.fetch,
-  scheduled: async (event: ScheduledEvent, env: Bindings, ctx: ExecutionContext) => {
-    // Weekly allowance cron
-    const fams = await env.DB.prepare(`
-      SELECT family_id, weekly_allowance_points FROM ExchangeRule WHERE weekly_allowance_points > 0
-    `).all<{ family_id: string, weekly_allowance_points: number }>();
-
-    const now = Date.now();
-
-    for (const f of (fams.results ?? [])) {
-      const kids = await env.DB.prepare(`
-        SELECT user_id FROM KidProfile WHERE family_id = ?
-      `).bind(f.family_id).all<{ user_id: string }>();
-
-      for (const k of (kids.results ?? [])) {
-        const ledgerId = uid('plg');
-        await env.DB.prepare(`
-          INSERT INTO PointsLedger (id,kid_user_id,family_id,delta_points,reason,ref_id,created_at)
-          VALUES (?,?,?,?,?,?,?)
-        `).bind(ledgerId, k.user_id, f.family_id, (f as any).weekly_allowance_points, 'weekly_allowance', null, now).run();
-
-        await env.DB.prepare(`
-          UPDATE KidProfile SET points_balance = points_balance + ? WHERE user_id=?
-        `).bind((f as any).weekly_allowance_points, k.user_id).run();
-      }
-    }
-
-    // Daily reminders cron
-    await emitDueReminders(env);
-  }
-};
-
 // --- Stripe Integration ---
 
 // Create checkout session
@@ -2024,3 +1991,36 @@ app.post('/stripe/webhook', async (c) => {
   
   return ok(c, { received: true });
 });
+
+export default {
+  fetch: app.fetch,
+  scheduled: async (event: ScheduledEvent, env: Bindings, ctx: ExecutionContext) => {
+    // Weekly allowance cron
+    const fams = await env.DB.prepare(`
+      SELECT family_id, weekly_allowance_points FROM ExchangeRule WHERE weekly_allowance_points > 0
+    `).all<{ family_id: string, weekly_allowance_points: number }>();
+
+    const now = Date.now();
+
+    for (const f of (fams.results ?? [])) {
+      const kids = await env.DB.prepare(`
+        SELECT user_id FROM KidProfile WHERE family_id = ?
+      `).bind(f.family_id).all<{ user_id: string }>();
+
+      for (const k of (kids.results ?? [])) {
+        const ledgerId = uid('plg');
+        await env.DB.prepare(`
+          INSERT INTO PointsLedger (id,kid_user_id,family_id,delta_points,reason,ref_id,created_at)
+          VALUES (?,?,?,?,?,?,?)
+        `).bind(ledgerId, k.user_id, f.family_id, (f as any).weekly_allowance_points, 'weekly_allowance', null, now).run();
+
+        await env.DB.prepare(`
+          UPDATE KidProfile SET points_balance = points_balance + ? WHERE user_id=?
+        `).bind((f as any).weekly_allowance_points, k.user_id).run();
+      }
+    }
+
+    // Daily reminders cron
+    await emitDueReminders(env);
+  }
+};
