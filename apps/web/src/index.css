@@ -41,6 +41,20 @@ html.dark {
     font-size: 17px;
   }
 
+  /* Mobile-first: reduce base font size on small screens */
+  @media (max-width: 640px) {
+    html {
+      font-size: 14px;
+    }
+  }
+
+  /* Tablet */
+  @media (min-width: 641px) and (max-width: 1024px) {
+    html {
+      font-size: 15px;
+    }
+  }
+
   html, body {
     height: 100%;
   }
@@ -53,6 +67,19 @@ html.dark {
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight;
   }
+
+  /* Mobile responsive headings */
+  @media (max-width: 640px) {
+    h1 {
+      font-size: 1.75rem; /* ~24px */
+    }
+    h2 {
+      font-size: 1.5rem; /* ~21px */
+    }
+    h3 {
+      font-size: 1.25rem; /* ~17.5px */
+    }
+  }
 }
 
 @layer components {
@@ -60,12 +87,36 @@ html.dark {
     @apply bg-zinc-800/40 backdrop-blur-md border border-zinc-700/50 rounded-2xl shadow-[0_0_25px_-5px_rgba(0,0,0,0.4)] transition-transform duration-300 hover:scale-[1.01];
   }
 
+  /* Mobile: tighter padding */
+  @media (max-width: 640px) {
+    .card-glass {
+      @apply p-4;
+    }
+    .glass-section {
+      @apply p-6;
+    }
+  }
+
   .btn-glass {
     @apply bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 backdrop-blur-md rounded-lg px-4 py-2 font-medium transition-all duration-300 hover:shadow-[0_0_20px_-4px_rgba(16,185,129,0.3)];
   }
 
+  /* Mobile: smaller buttons */
+  @media (max-width: 640px) {
+    .btn-glass {
+      @apply px-3 py-1.5 text-sm;
+    }
+  }
+
   .btn-glass-secondary {
     @apply bg-zinc-700/50 hover:bg-zinc-600/50 border border-zinc-600/40 text-zinc-200 backdrop-blur-md rounded-lg px-4 py-2 font-medium transition-all duration-300;
+  }
+
+  /* Mobile: smaller secondary buttons */
+  @media (max-width: 640px) {
+    .btn-glass-secondary {
+      @apply px-3 py-1.5 text-sm;
+    }
   }
 
   .glass-section {
@@ -86,5 +137,23 @@ html.dark {
 @supports (padding: max(0px)) {
   .safe-area-inset-bottom {
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Mobile optimizations - tighter spacing */
+@media (max-width: 640px) {
+  .section-glass {
+    padding: 12px;
+  }
+  
+  /* Reduce margins between sections */
+  .space-y-6 > * + * {
+    margin-top: 1rem; /* Was 1.5rem */
+  }
+  
+  /* Compact form inputs */
+  input, select, textarea {
+    font-size: 14px;
+    padding: 8px 12px;
   }
 }

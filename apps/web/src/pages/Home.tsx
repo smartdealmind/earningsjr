@@ -59,9 +59,9 @@ export default function Home() {
   // Parent/Helper Dashboard
   if (role === 'parent' || role === 'helper') {
     return (
-      <div className="max-w-6xl mx-auto my-6 space-y-6 pb-20">
-        <div className="relative mb-8">
-          <h1 className="text-3xl font-bold text-white relative z-10">Dashboard</h1>
+      <div className="max-w-6xl mx-auto my-4 md:my-6 space-y-4 md:space-y-6 pb-20 px-2 md:px-0">
+        <div className="relative mb-4 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-white relative z-10">Dashboard</h1>
           <div className="absolute inset-x-0 -top-6 h-20 bg-[radial-gradient(40%_60%_at_10%_0%,rgba(16,185,129,0.15),transparent)]" />
         </div>
 
@@ -139,9 +139,9 @@ export default function Home() {
   // Kid Dashboard
   if (role === 'kid') {
     return (
-      <div className="max-w-6xl mx-auto my-6 space-y-6 pb-20">
-        <div className="relative mb-8">
-          <h1 className="text-3xl font-bold text-white relative z-10">My Dashboard</h1>
+      <div className="max-w-6xl mx-auto my-4 md:my-6 space-y-4 md:space-y-6 pb-20 px-2 md:px-0">
+        <div className="relative mb-4 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-white relative z-10">My Dashboard</h1>
           <div className="absolute inset-x-0 -top-6 h-20 bg-[radial-gradient(40%_60%_at_10%_0%,rgba(16,185,129,0.15),transparent)]" />
         </div>
 
