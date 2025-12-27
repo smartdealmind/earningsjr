@@ -13,7 +13,8 @@ When setting up the Worker project in Cloudflare Dashboard with GitHub integrati
 - If you need a build step, use: `pnpm install --frozen-lockfile`
 
 **Deploy command:** `pnpm deploy`
-- This runs `pnpm -C workers/api deploy` which executes wrangler from the correct directory
+- This runs the root `deploy` script which executes `pnpm -C workers/api deploy`
+- Wrangler will be found in `workers/api/node_modules/.bin/wrangler`
 
 ## Alternative Configuration
 
