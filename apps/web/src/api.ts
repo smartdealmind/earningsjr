@@ -10,7 +10,7 @@ function getActingAsKidId(): string | null {
 
 export async function api(path: string, init: RequestInit = {}) {
   const actingAsKidId = getActingAsKidId()
-  const headers: HeadersInit = { 'Content-Type': 'application/json', ...(init.headers || {}) }
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...(init.headers as Record<string, string> || {}) }
   
   // Add actingAsKidId header if parent is acting as kid
   if (actingAsKidId) {
@@ -19,7 +19,7 @@ export async function api(path: string, init: RequestInit = {}) {
   
   const res = await fetch(API + path, {
     credentials: 'include',
-    headers,
+    headers: headers as HeadersInit,
     ...init
   });
   return res;

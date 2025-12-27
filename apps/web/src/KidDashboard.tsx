@@ -9,7 +9,7 @@ export default function KidDashboard() {
   const [msg, setMsg] = useState('');
   const [name, setName] = useState('');
   const [pin, setPin] = useState('');
-  const { actingAsKidId, actingAsKidName } = useActingAs();
+  const { actingAsKidId } = useActingAs();
 
   async function load() {
     setMe(await Api.me());
