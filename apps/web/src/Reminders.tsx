@@ -25,14 +25,28 @@ export default function Reminders() {
       if (prefsRes.ok) {
         const j = await prefsRes.json();
         setPrefs(j.prefs || []);
+      } else {
+        const err = await prefsRes.json().catch(() => ({}));
+        if (prefsRes.status !== 404) {
+          console.error('Failed to load reminder prefs:', err);
+        }
       }
       
       if (remindersRes.ok) {
         const j = await remindersRes.json();
         setReminders(j.reminders || []);
+      } else {
+        const err = await remindersRes.json().catch(() => ({}));
+        if (remindersRes.status === 500) {
+          console.error('Reminders endpoint error:', err);
+          toast.error('Failed to load reminders. Please try again.');
+        } else if (remindersRes.status !== 404) {
+          console.error('Failed to load reminders:', err);
+        }
       }
     } catch (err) {
-      toast.error('Failed to load reminders');
+      console.error('Network error loading reminders:', err);
+      toast.error('Network error loading reminders');
     } finally {
       setLoading(false);
     }

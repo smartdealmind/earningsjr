@@ -11,21 +11,31 @@ export default function Goals() {
   const [amount, setAmount] = useState(2000); // cents
   const [elig, setElig] = useState<any>(null);
   const [reqMsg, setReqMsg] = useState('');
+  const [me, setMe] = useState<any>(null);
+
+  // Get current user ID (kid routes use current user)
+  useEffect(() => {
+    Api.me().then(setMe).catch(() => {});
+  }, []);
 
   async function load() {
+    if (!me?.id) return; // Wait for user data
+    
     try {
-      const g = await Api.goalsList();
+      // For kid routes, use current user ID
+      const g = await Api.goalsList(me.id);
       setGoals(g.goals || []);
       
-      const e = await Api.eligibility();
+      const e = await Api.eligibility(me.id);
       if (e.ok) {
         setElig(e);
       }
     } catch (err) {
       console.error('Failed to load goals:', err);
+      toast.error('Failed to load goals');
     }
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [me]);
 
   async function create() {
     if (!title) {

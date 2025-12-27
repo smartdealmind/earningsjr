@@ -1,11 +1,20 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useTheme } from '@/theme/ThemeProvider'
+import { useEffect, useState } from 'react'
+import { Api } from '../api'
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const { mode, setMode } = useTheme();
   const cycle = () => setMode(mode === 'light' ? 'dark' : mode === 'dark' ? 'system' : 'light');
   const location = useLocation();
   const isHome = location.pathname === '/';
+  const [me, setMe] = useState<any>(null);
+  
+  useEffect(() => {
+    if (!isHome) {
+      Api.me().then(setMe).catch(() => setMe(null));
+    }
+  }, [isHome]);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -29,18 +38,33 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               </button>
             </div>
           ) : (
-            // App nav: full internal links
+            // App nav: organized by role
             <div className="ml-auto flex gap-2 flex-wrap items-center text-sm">
-              <Link to="/onboarding" className="text-zinc-300 hover:text-emerald-400 transition px-2">Onboarding</Link>
-              <Link to="/kid" className="text-zinc-300 hover:text-emerald-400 transition px-2">Kid</Link>
-              <Link to="/approvals" className="text-zinc-300 hover:text-emerald-400 transition px-2">Approvals</Link>
-              <Link to="/balances" className="text-zinc-300 hover:text-emerald-400 transition px-2">Balances</Link>
-              <Link to="/rules" className="text-zinc-300 hover:text-emerald-400 transition px-2">Rules</Link>
-              <Link to="/goals" className="text-zinc-300 hover:text-emerald-400 transition px-2">Goals</Link>
-              <Link to="/achievements" className="text-zinc-300 hover:text-emerald-400 transition px-2">Achievements</Link>
-              <Link to="/requests" className="text-zinc-300 hover:text-emerald-400 transition px-2">Requests</Link>
-              <Link to="/reminders" className="text-zinc-300 hover:text-emerald-400 transition px-2">Reminders</Link>
-              <Link to="/admin" className="text-zinc-300 hover:text-emerald-400 transition px-2">Admin</Link>
+              {/* Parent/Helper Links */}
+              {(me?.user?.role === 'parent' || me?.user?.role === 'helper') && (
+                <>
+                  <Link to="/approvals" className="text-zinc-300 hover:text-emerald-400 transition px-2">Approvals</Link>
+                  <Link to="/balances" className="text-zinc-300 hover:text-emerald-400 transition px-2">Balances</Link>
+                  <Link to="/rules" className="text-zinc-300 hover:text-emerald-400 transition px-2">Rules</Link>
+                  <Link to="/requests" className="text-zinc-300 hover:text-emerald-400 transition px-2">Requests</Link>
+                  <Link to="/reminders" className="text-zinc-300 hover:text-emerald-400 transition px-2">Reminders</Link>
+                </>
+              )}
+              
+              {/* Kid Links */}
+              {me?.user?.role === 'kid' && (
+                <>
+                  <Link to="/kid" className="text-zinc-300 hover:text-emerald-400 transition px-2">Dashboard</Link>
+                  <Link to="/goals" className="text-zinc-300 hover:text-emerald-400 transition px-2">Goals</Link>
+                  <Link to="/achievements" className="text-zinc-300 hover:text-emerald-400 transition px-2">Achievements</Link>
+                </>
+              )}
+              
+              {/* Admin Only */}
+              {me?.user?.is_admin && (
+                <Link to="/admin" className="text-zinc-300 hover:text-emerald-400 transition px-2">Admin</Link>
+              )}
+              
               <button 
                 onClick={cycle} 
                 title="Toggle theme"

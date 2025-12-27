@@ -16,9 +16,25 @@ export default function Achievements() {
   async function loadAchievements() {
     setLoading(true);
     try {
-      const r = await fetch(`${API}/achievements`, { credentials: 'include' });
+      // Get current user ID first (kid routes use current user)
+      const meRes = await fetch(`${API}/me`, { credentials: 'include' });
+      if (!meRes.ok) {
+        toast.error('Failed to load user data');
+        setLoading(false);
+        return;
+      }
+      const me = await meRes.json();
+      if (!me?.id) {
+        toast.error('User not found');
+        setLoading(false);
+        return;
+      }
+
+      // Use current user ID for kid-specific endpoint
+      const r = await fetch(`${API}/achievements?kid=${me.id}`, { credentials: 'include' });
       if (!r.ok) {
-        toast.error('Failed to load achievements');
+        const err = await r.json();
+        toast.error(err.error || 'Failed to load achievements');
         return;
       }
       const j = await r.json();
