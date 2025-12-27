@@ -7,7 +7,12 @@ on:
     paths:
       - 'workers/api/**'
       - '.github/workflows/deploy-workers.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
