@@ -19,6 +19,9 @@ import Admin from './Admin'
 import Achievements from './Achievements'
 import Reminders from './Reminders'
 import Pricing from './pages/Pricing'
+import Home from './pages/Home'
+import Kids from './pages/Kids'
+import Settings from './pages/Settings'
 import Shell from './components/Shell'
 import { Toaster } from '@/components/ui/sonner'
 import { RequireAuth } from './guards'
@@ -58,14 +61,21 @@ const router = createBrowserRouter([
   { path: '/reset-password', element: <RouteWrapper><Shell><ResetPassword /></Shell></RouteWrapper> },
   { path: '/dev', element: <RouteWrapper><Shell><App /></Shell></RouteWrapper> },
   { path: '/onboarding', element: <RouteWrapper><RequireAuth role="parent"><Shell><Onboarding /></Shell></RequireAuth></RouteWrapper> },
+  // New main navigation routes
+  { path: '/home', element: <RouteWrapper><RequireAuth><Shell><Home /></Shell></RequireAuth></RouteWrapper> },
   { path: '/approvals', element: <RouteWrapper><RequireAuth role="parent"><Shell><Approvals /></Shell></RequireAuth></RouteWrapper> },
+  { path: '/kids', element: <RouteWrapper><RequireAuth role="parent"><Shell><Kids /></Shell></RequireAuth></RouteWrapper> },
+  { path: '/settings', element: <RouteWrapper><RequireAuth role="parent"><Shell><Settings /></Shell></RequireAuth></RouteWrapper> },
+  // Kid routes
   { path: '/kid', element: <RouteWrapper><RequireAuth role="kid"><Shell><KidDashboard /></Shell></RequireAuth></RouteWrapper> },
-  { path: '/balances', element: <RouteWrapper><RequireAuth role="parent"><Shell><Balances /></Shell></RequireAuth></RouteWrapper> },
-  { path: '/rules', element: <RouteWrapper><RequireAuth role="parent"><Shell><Rules /></Shell></RequireAuth></RouteWrapper> },
   { path: '/goals', element: <RouteWrapper><RequireAuth role="kid"><Shell><Goals /></Shell></RequireAuth></RouteWrapper> },
-  { path: '/requests', element: <RouteWrapper><RequireAuth role="parent"><Shell><Requests /></Shell></RequireAuth></RouteWrapper> },
   { path: '/achievements', element: <RouteWrapper><RequireAuth role="kid"><Shell><Achievements /></Shell></RequireAuth></RouteWrapper> },
-  { path: '/reminders', element: <RouteWrapper><RequireAuth role="parent"><Shell><Reminders /></Shell></RequireAuth></RouteWrapper> },
+  // Legacy routes (redirect to new structure)
+  { path: '/balances', element: <RouteWrapper><RequireAuth role="parent"><Shell><Kids /></Shell></RequireAuth></RouteWrapper> },
+  { path: '/rules', element: <RouteWrapper><RequireAuth role="parent"><Shell><Settings /></Shell></RequireAuth></RouteWrapper> },
+  { path: '/requests', element: <RouteWrapper><RequireAuth role="parent"><Shell><Settings /></Shell></RequireAuth></RouteWrapper> },
+  { path: '/reminders', element: <RouteWrapper><RequireAuth role="parent"><Shell><Settings /></Shell></RequireAuth></RouteWrapper> },
+  // Admin
   { path: '/admin', element: <RouteWrapper><RequireAuth><Shell><Admin /></Shell></RequireAuth></RouteWrapper> },
   { path: '/pricing', element: <RouteWrapper><Shell><Pricing /></Shell></RouteWrapper> }
 ])

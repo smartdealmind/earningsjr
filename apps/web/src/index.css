@@ -81,3 +81,10 @@ html.dark {
 #root {
   opacity: 1 !important;
 }
+
+/* Safe area support for mobile devices (iPhone notches, etc.) */
+@supports (padding: max(0px)) {
+  .safe-area-inset-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
