@@ -13,7 +13,7 @@ enabled = true
 [[d1_databases]]
 binding = "DB"
 database_name = "earningsjr_db"
-database_id = "a2a234d8-ee9a-4e07-a7a1-4e9da8e57a21"
+database_id = "9660b412-facc-4c69-a993-938806569284"
 
 [[kv_namespaces]]
 binding = "SESSION_KV"
