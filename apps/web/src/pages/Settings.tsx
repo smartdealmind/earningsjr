@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import Rules from '../Rules'
 import Reminders from '../Reminders'
 import Requests from '../Requests'
