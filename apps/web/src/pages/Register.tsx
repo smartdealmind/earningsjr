@@ -215,6 +215,7 @@ export default function Register() {
               onChange={e => setEmail(e.target.value)}
               className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
               placeholder="parent@example.com"
+              autoComplete="email"
               required
             />
           </div>
@@ -272,6 +273,7 @@ export default function Register() {
               onChange={e => setPassword(e.target.value)}
               className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
               placeholder="••••••••"
+              autoComplete="new-password"
               required
             />
             <p className="text-xs text-zinc-500 mt-1">
@@ -289,6 +291,7 @@ export default function Register() {
               onChange={e => setConfirmPassword(e.target.value)}
               className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
               placeholder="••••••••"
+              autoComplete="new-password"
               required
             />
           </div>

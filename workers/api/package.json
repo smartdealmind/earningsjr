@@ -1,5 +1,5 @@
 {
-  "name": "@chorecoins/api",
+  "name": "@earningsjr/api",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -11,7 +11,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "hono": "^4.6.8"
+    "hono": "^4.6.8",
+    "stripe": "^20.1.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241022.0",

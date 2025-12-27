@@ -12,7 +12,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       <header className="fixed top-0 left-0 right-0 z-50 bg-zinc-900/30 backdrop-blur-xl border-b border-zinc-800/50">
         <nav className="mx-auto max-w-6xl flex items-center gap-3 px-6 py-4">
           <Link to="/" className="text-xl font-semibold text-white tracking-tight">
-            Chore<span className="text-emerald-400">Coins</span>
+            Earnings<span className="text-emerald-400">Jr</span>
           </Link>
           
           {isHome ? (
@@ -57,7 +57,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         <footer className="border-t border-zinc-800/50 bg-zinc-900/20 backdrop-blur-md mt-12">
           <div className="mx-auto max-w-6xl px-6 py-6 text-center">
             <div className="text-xs text-zinc-500">
-              © {new Date().getFullYear()} ChoreCoins • Powered by <a href="https://smartdealmind.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition font-medium">SmartDealMind LLC</a>
+              © {new Date().getFullYear()} EarningsJr • Powered by <a href="https://smartdealmind.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition font-medium">SmartDealMind LLC</a>
             </div>
           </div>
         </footer>

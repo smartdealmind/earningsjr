@@ -20,6 +20,10 @@ export const Api = {
   login: (payload: { email: string; password: string }) =>
     api('/auth/login', { method: 'POST', body: JSON.stringify(payload) }).then(r => r.json()),
   logout: () => api('/auth/logout', { method: 'POST' }).then(r => r.json()),
+  forgotPassword: (email: string) =>
+    api('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }).then(r => r.json()),
+  resetPassword: (token: string, password: string) =>
+    api('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password }) }).then(r => r.json()),
   me: () => api('/me').then(r => r.json()),
   
   // Kids
@@ -71,5 +75,10 @@ export const Api = {
   updateReminderPrefs: (payload: any) => api('/reminders/prefs', { method: 'PATCH', body: JSON.stringify(payload) }).then(r => r.json()),
   listReminders: () => api('/reminders').then(r => r.json()),
   ackReminder: (id: string) => api(`/reminders/${id}/ack`, { method: 'POST' }).then(r => r.json()),
+  
+  // Stripe
+  createCheckout: (priceId: string) =>
+    api('/stripe/create-checkout', { method: 'POST', body: JSON.stringify({ priceId }) }).then(r => r.json()),
+  getSubscription: () => api('/stripe/subscription').then(r => r.json()),
 };
 

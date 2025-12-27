@@ -1,10 +1,10 @@
-name = "chorecoins-api"
+name = "earningsjr-api"
 main = "src/index.ts"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
 
 # When you later attach a custom domain or route from Pages, you can use routes = [...]
-# routes = [{ pattern = "api.chorecoins.com/*", zone_name = "chorecoins.com" }]
+# routes = [{ pattern = "api.earningsjr.com/*", zone_name = "earningsjr.com" }]
 
 [observability]
 enabled = true
@@ -12,7 +12,7 @@ enabled = true
 # Bindings (dev will use local durable emulation)
 [[d1_databases]]
 binding = "DB"
-database_name = "chorecoins_db"
+database_name = "earningsjr_db"
 database_id = "a2a234d8-ee9a-4e07-a7a1-4e9da8e57a21"
 
 [[kv_namespaces]]
@@ -21,7 +21,7 @@ id = "e740282ef5744352bf5964730389aa6b"
 
 [[r2_buckets]]
 binding = "ASSETS"
-bucket_name = "chorecoins-assets"
+bucket_name = "earningsjr-assets"
 
 [triggers]
 crons = ["0 8 * * 1", "*/15 * * * *"]  # Weekly allowance Monday 08:00 UTC + reminders every 15m

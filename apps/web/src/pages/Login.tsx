@@ -54,7 +54,7 @@ export default function Login() {
         </div>
 
         <p className="text-zinc-400 text-center mb-8">
-          Sign in to your ChoreCoins account
+          Sign in to your EarningsJr account
         </p>
 
         <form onSubmit={handleLogin} className="space-y-4">
@@ -68,21 +68,31 @@ export default function Login() {
               onChange={e => setEmail(e.target.value)}
               className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
               placeholder="parent@example.com"
+              autoComplete="email"
               required
               autoFocus
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-2">
-              Password
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-zinc-300">
+                Password
+              </label>
+              <Link
+                to="/forgot-password"
+                className="text-sm text-emerald-400 hover:text-emerald-300 transition"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <input
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="w-full bg-zinc-900/50 border border-zinc-700/50 rounded-lg px-4 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
               placeholder="••••••••"
+              autoComplete="current-password"
               required
             />
           </div>

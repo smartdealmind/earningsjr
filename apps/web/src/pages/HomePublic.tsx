@@ -26,7 +26,7 @@ export default function HomePublic() {
                   New • Built for families
                 </div>
                 <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-4 leading-tight">
-                  ChoreCoins — <span className="text-emerald-400">Earn. Learn. Grow.</span>
+                  EarningsJr — <span className="text-emerald-400">Earn. Learn. Grow.</span>
                 </h1>
                 <p className="text-lg text-zinc-400 mb-8 leading-relaxed">
                   Teach your kids the value of work with fun tasks, rewards, and real-life responsibility. 
@@ -64,7 +64,7 @@ export default function HomePublic() {
       {/* Feature grid */}
       <section className="mx-auto max-w-6xl px-6 py-12 md:py-16">
         <div className="mb-8 text-center">
-          <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-white">Why families love ChoreCoins</h2>
+          <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-white">Why families love EarningsJr</h2>
           <p className="text-zinc-400 mt-2">Kid-friendly tasks. Parent-friendly controls. Real-world learning.</p>
         </div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -130,7 +130,7 @@ export default function HomePublic() {
           <div className="card-glass p-6">
             <div className="text-lg font-semibold text-white mb-3">Parents say</div>
             <p className="text-zinc-400 italic">"Our kids finally understand the difference between family jobs and paid jobs—and they're excited to help."</p>
-            <div className="mt-4 text-sm text-emerald-400">— A happy ChoreCoins family</div>
+            <div className="mt-4 text-sm text-emerald-400">— A happy EarningsJr family</div>
           </div>
           <div className="card-glass p-6">
             <div className="text-lg font-semibold text-white mb-3">Is this free?</div>
@@ -143,7 +143,7 @@ export default function HomePublic() {
       <footer className="border-t border-zinc-800/50 bg-zinc-900/20 backdrop-blur-md mt-16">
         <div className="mx-auto max-w-6xl px-6 py-8">
           <div className="text-sm text-zinc-400 flex flex-wrap gap-3 items-center justify-center mb-3">
-            <span>© {new Date().getFullYear()} ChoreCoins</span>
+            <span>© {new Date().getFullYear()} EarningsJr</span>
             <span className="opacity-50">•</span>
             <Link to="/balances" className="hover:text-emerald-400 transition">Parent dashboard</Link>
             <span className="opacity-50">•</span>

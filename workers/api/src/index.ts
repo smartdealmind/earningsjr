@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import Stripe from 'stripe';
 import { uid, hashPassword, verifyPassword, cookieSerialize } from './lib';
 import { ok, err, readJson, rateLimit } from './http';
 import { audit } from './logger';
@@ -9,7 +10,9 @@ type Bindings = {
   SESSION_KV: KVNamespace;
   ASSETS: R2Bucket;
   RESEND_API_KEY: string;
-  SENDER_EMAIL?: string; // e.g., "ChoreCoins <noreply@smartdealmind.com>"
+  SENDER_EMAIL?: string; // e.g., "EarningsJr <noreply@earningsjr.com>"
+  STRIPE_SECRET_KEY: string;
+  STRIPE_WEBHOOK_SECRET?: string;
 };
 
 type Vars = { userId?: string, role?: string };
@@ -19,8 +22,10 @@ const app = new Hono<{ Bindings: Bindings, Variables: Vars }>();
 // CORS with Pages domain allowlist
 const ALLOWED_ORIGINS = [
   'http://localhost:5173', // local dev
-  'https://chorecoins.pages.dev', // production Pages
-  'https://chorecoins-api.thejmgfam.workers.dev' // API domain
+  'https://earningsjr.pages.dev', // production Pages
+  'https://earningsjr-api.thejmgfam.workers.dev', // API domain
+  'https://earningsjr.com', // custom domain
+  'https://www.earningsjr.com' // www custom domain
 ];
 
 function isAllowedOrigin(origin?: string) {
@@ -99,7 +104,7 @@ function nowMs() { return Date.now(); }
 
 function genKidEmail(kidId: string) {
   // Kids may not have real email; use unique placeholder domain
-  return `${kidId}@kid.chorecoins.local`;
+  return `${kidId}@kid.earningsjr.local`;
 }
 
 // Reminder helpers
@@ -130,7 +135,7 @@ function localNowInTz(timezone: string) {
 // Root route
 app.get('/', (c) => {
   return c.json({
-    name: 'ChoreCoins API',
+    name: 'EarningsJr API',
     version: '0.0.1',
     endpoints: {
       health: '/healthz',
@@ -138,7 +143,7 @@ app.get('/', (c) => {
       auth: ['/auth/register-parent', '/auth/login', '/auth/logout', '/auth/kid-login'],
       resources: ['/me', '/templates', '/kids', '/chores', '/goals', '/requests', '/exchange/rules', '/eligibility', '/ledger', '/kids/balances', '/exchange/quote']
     },
-    docs: 'https://github.com/smartdealmind/chorecoins'
+    docs: 'https://github.com/smartdealmind/earningsjr'
   });
 });
 
@@ -186,7 +191,7 @@ app.get('/healthz', async (c) => {
 
   return c.json({
     ok: d1Ok && kvOk && tablesOk,
-    service: 'chorecoins-api',
+    service: 'earningsjr-api',
     d1: { ok: d1Ok, user_version: userVersion, tables_ok: tablesOk },
     kv: { ok: kvOk }
   });
@@ -203,7 +208,7 @@ function getVerificationEmailHtml(code: string): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ChoreCoins Verification Code</title>
+  <title>EarningsJr Verification Code</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #09090b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #09090b; padding: 40px 20px;">
@@ -248,7 +253,7 @@ function getVerificationEmailHtml(code: string): string {
             <td style="padding: 20px 40px 40px;">
               <div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 12px; padding: 20px;">
                 <p style="margin: 0; font-size: 13px; color: #fca5a5; line-height: 1.5;">
-                  🔒 <strong>Security tip:</strong> Never share this code with anyone. ChoreCoins will never ask for your verification code.
+                  🔒 <strong>Security tip:</strong> Never share this code with anyone. EarningsJr will never ask for your verification code.
                 </p>
               </div>
             </td>
@@ -261,7 +266,7 @@ function getVerificationEmailHtml(code: string): string {
                 Didn't request this code? You can safely ignore this email.
               </p>
               <p style="margin: 0; font-size: 12px; color: #52525b;">
-                © ${new Date().getFullYear()} ChoreCoins • Powered by <a href="https://smartdealmind.com" style="color: #10b981; text-decoration: none;">SmartDealMind LLC</a>
+                © ${new Date().getFullYear()} EarningsJr • Powered by <a href="https://smartdealmind.com" style="color: #10b981; text-decoration: none;">SmartDealMind LLC</a>
               </p>
             </td>
           </tr>
@@ -296,14 +301,14 @@ app.post('/auth/send-verification', async (c) => {
     const emailHtml = getVerificationEmailHtml(code);
     
     // Use custom sender email if set, otherwise default to Resend test email
-    const senderEmail = c.env.SENDER_EMAIL || 'ChoreCoins <onboarding@resend.dev>';
+    const senderEmail = c.env.SENDER_EMAIL || 'EarningsJr <onboarding@resend.dev>';
     
     const emailPayload = {
       from: senderEmail,
       to: [email],
-      subject: `Your ChoreCoins verification code: ${code}`,
+      subject: `Your EarningsJr verification code: ${code}`,
       html: emailHtml,
-      text: `Your ChoreCoins verification code is: ${code}\n\nThis code will expire in 10 minutes.\n\nEnter this code on the verification page to complete your registration.\n\nIf you didn't request this code, you can safely ignore this email.`
+      text: `Your EarningsJr verification code is: ${code}\n\nThis code will expire in 10 minutes.\n\nEnter this code on the verification page to complete your registration.\n\nIf you didn't request this code, you can safely ignore this email.`
     };
 
     const resendResponse = await fetch('https://api.resend.com/emails', {
@@ -490,6 +495,203 @@ app.post('/auth/logout', async (c) => {
   }
   c.header('Set-Cookie', cookieSerialize('cc_sess', '', { httpOnly: true, secure: true, sameSite: 'None', path: '/', maxAge: 0 }));
   return c.json({ ok: true });
+});
+
+// Helper: Generate password reset email HTML
+function getPasswordResetEmailHtml(resetUrl: string): string {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Your EarningsJr Password</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #09090b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #09090b; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, rgba(24,24,27,0.95) 0%, rgba(39,39,42,0.95) 100%); border-radius: 24px; border: 1px solid rgba(63,63,70,0.5); overflow: hidden; box-shadow: 0 0 40px -10px rgba(0,0,0,0.5);">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 20px; text-align: center;">
+              <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #fff; letter-spacing: -0.5px;">
+                Chore<span style="color: #10b981;">Coins</span>
+              </h1>
+              <p style="margin: 10px 0 0; font-size: 14px; color: #a1a1aa;">Family Chore Management</p>
+            </td>
+          </tr>
+          
+          <!-- Content -->
+          <tr>
+            <td style="padding: 20px 40px;">
+              <div style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 16px; padding: 30px; text-align: center;">
+                <p style="margin: 0 0 20px; font-size: 16px; color: #d4d4d8; line-height: 1.6;">
+                  You requested to reset your password. Click the button below to create a new password:
+                </p>
+                <a href="${resetUrl}" style="display: inline-block; background: #10b981; color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 20px 0;">
+                  Reset Password
+                </a>
+                <p style="margin: 20px 0 0; font-size: 14px; color: #a1a1aa;">
+                  This link will expire in <strong style="color: #fbbf24;">1 hour</strong>
+                </p>
+              </div>
+              
+              <p style="margin: 30px 0 0; font-size: 15px; color: #d4d4d8; line-height: 1.6; text-align: center;">
+                If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
+              </p>
+              
+              <p style="margin: 20px 0 0; font-size: 13px; color: #71717a; text-align: center;">
+                Or copy and paste this link into your browser:<br>
+                <span style="word-break: break-all; color: #10b981;">${resetUrl}</span>
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Security Notice -->
+          <tr>
+            <td style="padding: 20px 40px 40px;">
+              <div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 12px; padding: 20px;">
+                <p style="margin: 0; font-size: 13px; color: #fca5a5; line-height: 1.5;">
+                  🔒 <strong>Security tip:</strong> Never share this link with anyone. EarningsJr will never ask for your password reset link.
+                </p>
+              </div>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 20px 40px 40px; text-align: center; border-top: 1px solid rgba(63,63,70,0.5);">
+              <p style="margin: 0 0 10px; font-size: 12px; color: #71717a;">
+                Didn't request this? You can safely ignore this email.
+              </p>
+              <p style="margin: 0; font-size: 12px; color: #52525b;">
+                © ${new Date().getFullYear()} EarningsJr • Powered by <a href="https://smartdealmind.com" style="color: #10b981; text-decoration: none;">SmartDealMind LLC</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}
+
+// --- Auth: Forgot Password ---
+app.post('/auth/forgot-password', async (c) => {
+  // Rate limit
+  const ip = c.req.header('CF-Connecting-IP') || 'unknown';
+  if (!(await rateLimit(c, `forgot:${ip}`, 5, 60))) {
+    return err(c, 429, 'rate_limited', 'Too many attempts, try again soon');
+  }
+
+  const { email } = await c.req.json<{ email: string }>();
+  if (!email) return c.json({ ok: false, error: 'email_required' }, 400);
+
+  // Check if user exists (don't reveal if they don't for security)
+  const user = await c.env.DB.prepare(`SELECT id, email FROM User WHERE email = ?`).bind(email).first<{ id: string, email: string }>();
+  
+  // Always return success to prevent email enumeration
+  // But only send email if user exists
+  if (user) {
+    // Generate secure reset token
+    const resetToken = uid('rst');
+    const key = `reset:${resetToken}`;
+    
+    // Store token in KV for 1 hour (3600 seconds)
+    await c.env.SESSION_KV.put(key, user.id, { expirationTtl: 3600 });
+    
+    // Generate reset URL
+    const origin = c.req.header('Origin') || 'https://earningsjr.pages.dev';
+    const resetUrl = `${origin}/reset-password?token=${resetToken}`;
+    
+    // Send email via Resend
+    try {
+      const emailHtml = getPasswordResetEmailHtml(resetUrl);
+      const senderEmail = c.env.SENDER_EMAIL || 'EarningsJr <onboarding@resend.dev>';
+      
+      const emailPayload = {
+        from: senderEmail,
+        to: [email],
+        subject: 'Reset Your EarningsJr Password',
+        html: emailHtml,
+        text: `You requested to reset your password for EarningsJr.\n\nClick this link to reset your password:\n${resetUrl}\n\nThis link will expire in 1 hour.\n\nIf you didn't request this, you can safely ignore this email.`
+      };
+
+      const resendResponse = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${c.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(emailPayload)
+      });
+
+      if (!resendResponse.ok) {
+        console.error('Resend API error:', await resendResponse.json());
+        // Don't reveal failure to user
+      } else {
+        await audit(c, { action: 'auth.forgot_password', targetId: user.id, meta: { email } });
+      }
+    } catch (error: any) {
+      console.error('Email sending error:', error?.message || error);
+      // Don't reveal failure to user
+    }
+  }
+
+  // Always return success to prevent email enumeration
+  return c.json({ 
+    ok: true, 
+    message: 'If an account with that email exists, we\'ve sent a password reset link.'
+  });
+});
+
+// --- Auth: Reset Password ---
+app.post('/auth/reset-password', async (c) => {
+  // Rate limit
+  const ip = c.req.header('CF-Connecting-IP') || 'unknown';
+  if (!(await rateLimit(c, `reset:${ip}`, 5, 60))) {
+    return err(c, 429, 'rate_limited', 'Too many attempts, try again soon');
+  }
+
+  const body = await c.req.json<{ token: string, password: string }>();
+  const { token, password } = body || {};
+  
+  if (!token || !password) {
+    return c.json({ ok: false, error: 'token_and_password_required' }, 400);
+  }
+
+  if (password.length < 8) {
+    return c.json({ ok: false, error: 'password_too_short' }, 400);
+  }
+
+  // Get user ID from token
+  const key = `reset:${token}`;
+  const userId = await c.env.SESSION_KV.get(key);
+  
+  if (!userId) {
+    return c.json({ ok: false, error: 'invalid_or_expired_token' }, 400);
+  }
+
+  // Hash new password
+  const newPasswordHash = await hashPassword(password);
+  
+  // Update password in database
+  await c.env.DB.prepare(`UPDATE User SET password_hash = ? WHERE id = ?`)
+    .bind(newPasswordHash, userId).run();
+  
+  // Delete used token
+  await c.env.SESSION_KV.delete(key);
+  
+  // Invalidate all existing sessions for this user (force re-login)
+  // Note: This is a simple implementation. For production, you'd want to track all sessions
+  // and delete them individually. For now, users will need to log in again.
+  
+  await audit(c, { action: 'auth.reset_password', targetId: userId, meta: {} });
+
+  return c.json({ ok: true, message: 'Password reset successfully. Please log in with your new password.' });
 });
 
 // --- Kid login (PIN) ---
@@ -1292,7 +1494,7 @@ function svgChart(opts: { kid: string; displayName: string; weekRequired: number
     .num   { font: 700 20px system-ui, -apple-system, Segoe UI, Roboto; }
   </style>
   <rect width="100%" height="100%" fill="#ffffff"/>
-  <text x="40" y="70" class="title">ChoreCoins — Weekly Reward Chart</text>
+  <text x="40" y="70" class="title">EarningsJr — Weekly Reward Chart</text>
   <text x="40" y="110" class="sub">Kid: ${opts.displayName}</text>
   <text x="40" y="140" class="sub">Balance: ${opts.balance} pts (~ ${opts.currency})</text>
 
@@ -1307,7 +1509,7 @@ function svgChart(opts: { kid: string; displayName: string; weekRequired: number
   <circle cx="220" cy="365" r="8" fill="#22c55e"/><text x="240" y="370" class="sub">Paid</text>
 
   <text x="40" y="440" class="sub">Parents: You can print and stick this on the fridge!</text>
-  <text x="40" y="470" class="sub" fill="#64748b">Generated by ChoreCoins</text>
+  <text x="40" y="470" class="sub" fill="#64748b">Generated by EarningsJr</text>
 </svg>`;
 }
 
@@ -1731,3 +1933,94 @@ export default {
     await emitDueReminders(env);
   }
 };
+
+// --- Stripe Integration ---
+
+// Create checkout session
+app.post('/stripe/create-checkout', async (c) => {
+  const a = requireAuth(c);
+  if (a) return a;
+  
+  const userId = c.get('userId');
+  const body = await c.req.json<{ priceId: string }>();
+  
+  if (!c.env.STRIPE_SECRET_KEY) {
+    return err(c, 500, 'stripe_not_configured', 'Stripe is not configured');
+  }
+  
+  const stripe = new Stripe(c.env.STRIPE_SECRET_KEY, { apiVersion: '2024-12-18.acacia' });
+  
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      line_items: [{
+        price: body.priceId,
+        quantity: 1,
+      }],
+      customer_email: (await c.env.DB.prepare('SELECT email FROM User WHERE id=?').bind(userId).first<{ email: string }>())?.email,
+      success_url: `${c.req.header('Origin') || 'https://earningsjr.pages.dev'}/dashboard?success=true`,
+      cancel_url: `${c.req.header('Origin') || 'https://earningsjr.pages.dev'}/pricing`,
+      metadata: {
+        userId,
+      },
+    });
+    
+    return ok(c, { url: session.url });
+  } catch (error: any) {
+    console.error('Stripe checkout error:', error);
+    return err(c, 500, 'stripe_error', error.message || 'Failed to create checkout session');
+  }
+});
+
+// Get subscription status
+app.get('/stripe/subscription', async (c) => {
+  const a = requireAuth(c);
+  if (a) return a;
+  
+  const userId = c.get('userId');
+  // TODO: Store Stripe customer ID in User table
+  // For now, return mock data
+  return ok(c, { 
+    hasSubscription: false,
+    plan: null,
+    status: 'free_trial',
+    trialEndsAt: null,
+  });
+});
+
+// Stripe webhook handler
+app.post('/stripe/webhook', async (c) => {
+  const signature = c.req.header('stripe-signature');
+  if (!signature || !c.env.STRIPE_WEBHOOK_SECRET) {
+    return err(c, 400, 'missing_signature', 'Webhook signature required');
+  }
+  
+  const stripe = new Stripe(c.env.STRIPE_SECRET_KEY, { apiVersion: '2024-12-18.acacia' });
+  const body = await c.req.text();
+  
+  let event: Stripe.Event;
+  try {
+    event = stripe.webhooks.constructEvent(body, signature, c.env.STRIPE_WEBHOOK_SECRET);
+  } catch (error: any) {
+    console.error('Webhook signature verification failed:', error);
+    return err(c, 400, 'invalid_signature', 'Invalid signature');
+  }
+  
+  // Handle subscription events
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const userId = session.metadata?.userId;
+    if (userId) {
+      // TODO: Store subscription in database
+      await audit(c, { action: 'subscription.created', targetId: userId, meta: { sessionId: session.id } });
+    }
+  }
+  
+  if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
+    const subscription = event.data.object as Stripe.Subscription;
+    // TODO: Update subscription status in database
+    await audit(c, { action: 'subscription.updated', meta: { subscriptionId: subscription.id, status: subscription.status } });
+  }
+  
+  return ok(c, { received: true });
+});

@@ -49,7 +49,7 @@ export default function Onboarding() {
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
 
   const [steps, setSteps] = useState<OnboardingStep[]>([
-    { id: 'welcome', title: 'Welcome', description: 'Get started with ChoreCoins', required: true, completed: false },
+    { id: 'welcome', title: 'Welcome', description: 'Get started with EarningsJr', required: true, completed: false },
     { id: 'profile', title: 'Complete Profile', description: 'Add optional details', required: false, completed: false },
     { id: 'kids', title: 'Add Kids', description: 'Create profiles for your children', required: true, completed: false },
     { id: 'rules', title: 'Setup Rules', description: 'Configure points and currency', required: true, completed: false },
@@ -192,7 +192,7 @@ export default function Onboarding() {
       case 'finish':
         // Complete onboarding
         navigate('/balances');
-        toast.success('🎉 Welcome to ChoreCoins!');
+        toast.success('🎉 Welcome to EarningsJr!');
         return;
     }
 
@@ -304,7 +304,7 @@ export default function Onboarding() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-white">Welcome to ChoreCoins!</h1>
+              <h1 className="text-3xl font-bold text-white">Welcome to EarningsJr!</h1>
               <p className="text-zinc-400 mt-1">Let's get your family set up in a few easy steps</p>
             </div>
             <div className="text-sm text-zinc-500">
@@ -751,7 +751,7 @@ export default function Onboarding() {
                       <label htmlFor="saveAsTemplate" className="text-sm text-zinc-300 flex-1">
                         <span className="font-medium text-white">Save as template</span>
                         <p className="text-xs text-zinc-500 mt-0.5">
-                          Make this chore available to all families (helps the ChoreCoins community!)
+                          Make this chore available to all families (helps the EarningsJr community!)
                         </p>
                       </label>
                     </div>
@@ -775,7 +775,7 @@ export default function Onboarding() {
                   <div className="text-6xl mb-4">✅</div>
                   <h3 className="text-2xl font-bold text-white mb-3">You're All Set!</h3>
                   <p className="text-zinc-400 max-w-lg mx-auto">
-                    Your ChoreCoins account is ready. You can always modify settings, add more kids, or adjust rules later from your dashboard.
+                    Your EarningsJr account is ready. You can always modify settings, add more kids, or adjust rules later from your dashboard.
                   </p>
                 </div>
 

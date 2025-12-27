@@ -66,7 +66,7 @@ export default function App() {
 
   return (
     <div className="max-w-3xl mx-auto my-8">
-      <h1 className="text-2xl font-semibold mb-4 tracking-tight">ChoreCoins — MVP</h1>
+      <h1 className="text-2xl font-semibold mb-4 tracking-tight">EarningsJr — MVP</h1>
 
       <Block title="Health">
         <Pre json={health} />
