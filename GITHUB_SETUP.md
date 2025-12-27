@@ -24,7 +24,7 @@ Deploys the web app to Cloudflare Pages when changes are pushed to `main` branch
 **Requirements:**
 - `CLOUDFLARE_API_TOKEN` - Cloudflare API token with Pages edit permissions
 - `CLOUDFLARE_ACCOUNT_ID` - Your Cloudflare account ID
-- `VITE_API_URL` (optional) - API URL for the frontend (defaults to workers.dev URL)
+- `VITE_API_BASE` (optional) - API URL for the frontend (defaults to `https://api.earningsjr.com`)
 
 ### 2. Cloudflare Workers Deployment (`deploy-workers.yml`)
 
@@ -55,7 +55,7 @@ CLOUDFLARE_ACCOUNT_ID
 ### Optional Secrets
 
 ```
-VITE_API_URL  # If you want to override the default API URL
+VITE_API_BASE  # If you want to override the default API URL (defaults to https://api.earningsjr.com)
 ```
 
 ## Getting Your Cloudflare Credentials

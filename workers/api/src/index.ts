@@ -23,9 +23,9 @@ const app = new Hono<{ Bindings: Bindings, Variables: Vars }>();
 const ALLOWED_ORIGINS = [
   'http://localhost:5173', // local dev
   'https://earningsjr.pages.dev', // production Pages
-  'https://earningsjr-api.thejmgfam.workers.dev', // API domain
   'https://earningsjr.com', // custom domain
-  'https://www.earningsjr.com' // www custom domain
+  'https://www.earningsjr.com', // www custom domain
+  'https://api.earningsjr.com' // API custom domain
 ];
 
 function isAllowedOrigin(origin?: string) {

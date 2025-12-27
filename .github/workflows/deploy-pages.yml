@@ -34,7 +34,7 @@ jobs:
       - name: Build web app
         working-directory: apps/web
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://earningsjr-api.smartdealmind.workers.dev' }}
+          VITE_API_BASE: ${{ secrets.VITE_API_BASE || 'https://api.earningsjr.com' }}
         run: pnpm build
 
       - name: Deploy to Cloudflare Pages

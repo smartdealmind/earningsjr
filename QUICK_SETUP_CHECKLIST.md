@@ -35,7 +35,7 @@
 - [ ] Create product: "EarningsJr Premium Annual" - $99/year
 - [ ] Copy **Price ID**: `VITE_STRIPE_PRICE_ID_ANNUAL=price_xxx`
 - [ ] Set up webhook: https://dashboard.stripe.com/test/webhooks
-  - URL: `https://earningsjr-api.thejmgfam.workers.dev/stripe/webhook`
+  - URL: `https://api.earningsjr.com/stripe/webhook`
   - Events: Select all subscription events
   - Copy **Signing secret**: `STRIPE_WEBHOOK_SECRET=whsec_xxx`
 
@@ -76,7 +76,7 @@ npx wrangler secret put RESEND_API_KEY
 4. Add these (Production environment):
 
 ```
-VITE_API_BASE=https://earningsjr-api.thejmgfam.workers.dev
+VITE_API_BASE=https://api.earningsjr.com
 VITE_SENTRY_DSN=https://xxx@xxx.ingest.sentry.io/xxx
 VITE_POSTHOG_KEY=phc_xxxxx
 VITE_POSTHOG_HOST=https://app.posthog.com

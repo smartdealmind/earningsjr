@@ -24,7 +24,7 @@ pnpm install --frozen-lockfile && pnpm -C apps/web build
 - This is where Vite outputs the built files
 
 **Environment variables (if needed):**
-- `VITE_API_URL` - Your API URL (e.g., `https://earningsjr-api.smartdealmind.workers.dev`)
+- `VITE_API_BASE` - Your API URL (e.g., `https://api.earningsjr.com`)
 - `NODE_VERSION` - `20` (optional, Cloudflare usually detects this)
 
 ### Production Branch
@@ -47,7 +47,7 @@ If you prefer to use GitHub Actions (already configured):
 3. **Required GitHub Secrets:**
    - `CLOUDFLARE_API_TOKEN`
    - `CLOUDFLARE_ACCOUNT_ID`
-   - `VITE_API_URL` (optional)
+   - `VITE_API_BASE` (optional, defaults to `https://api.earningsjr.com`)
 
 ---
 
@@ -72,7 +72,7 @@ For simplicity, use Option 1. Cloudflare Pages will:
    ```
 
 4. Add environment variable (if needed):
-   - `VITE_API_URL` = `https://earningsjr-api.smartdealmind.workers.dev`
+   - `VITE_API_BASE` = `https://api.earningsjr.com`
 
 5. Save and trigger a new deployment
 

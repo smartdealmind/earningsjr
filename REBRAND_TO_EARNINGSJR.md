@@ -77,8 +77,9 @@ npx wrangler deploy
 This will create a new worker named `earningsjr-api` (from `wrangler.toml`).
 
 **After deployment:**
-- Your API will be at: `https://earningsjr-api.YOUR_SUBDOMAIN.workers.dev`
-- Update CORS origins in code if needed
+- Your API will be at: `https://api.earningsjr.com` (custom domain)
+- Also available at: `https://earningsjr-api.YOUR_SUBDOMAIN.workers.dev` (workers.dev URL)
+- CORS origins are already configured in code
 
 ---
 
@@ -133,7 +134,7 @@ npx wrangler secret put RESEND_API_KEY
 **For Pages (Environment Variables):**
 In Cloudflare Dashboard → Pages → Settings → Environment Variables:
 ```
-VITE_API_BASE=https://earningsjr-api.YOUR_SUBDOMAIN.workers.dev
+VITE_API_BASE=https://api.earningsjr.com
 VITE_SENTRY_DSN=your_sentry_dsn
 VITE_POSTHOG_KEY=your_posthog_key
 VITE_POSTHOG_HOST=https://app.posthog.com
@@ -149,7 +150,7 @@ VITE_STRIPE_PRICE_ID_ANNUAL=price_xxx
 **In Stripe Dashboard:**
 1. Go to: https://dashboard.stripe.com/test/webhooks
 2. Edit your existing webhook (or create new)
-3. Update URL to: `https://earningsjr-api.YOUR_SUBDOMAIN.workers.dev/stripe/webhook`
+3. Update URL to: `https://api.earningsjr.com/stripe/webhook`
 4. Save
 
 ---
@@ -221,7 +222,7 @@ npx wrangler d1 execute earningsjr_db --file=backup.sql
 
 Once everything is deployed:
 - Your site: `https://earningsjr.com` (or `earningsjr.pages.dev`)
-- Your API: `https://earningsjr-api.YOUR_SUBDOMAIN.workers.dev`
+- Your API: `https://api.earningsjr.com`
 - All branding: EarningsJr everywhere
 - Database: `earningsjr_db`
 - Everything consistent! 🎉

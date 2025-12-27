@@ -56,7 +56,7 @@
 5. **Set up Webhook:**
    - Go to: https://dashboard.stripe.com/test/webhooks
    - Click "Add endpoint"
-   - URL: `https://earningsjr-api.thejmgfam.workers.dev/stripe/webhook`
+   - URL: `https://api.earningsjr.com/stripe/webhook`
    - Events to send: Select all subscription events
    - Copy **Signing secret** (starts with `whsec_`)
 
@@ -130,7 +130,7 @@ npx wrangler secret put SENTRY_DSN
 4. Add these (for Production environment):
 
 ```
-VITE_API_BASE=https://earningsjr-api.thejmgfam.workers.dev
+VITE_API_BASE=https://api.earningsjr.com
 VITE_SENTRY_DSN=https://xxx@xxx.ingest.sentry.io/xxx
 VITE_POSTHOG_KEY=phc_xxxxx
 VITE_POSTHOG_HOST=https://app.posthog.com
@@ -167,7 +167,7 @@ npx wrangler pages deploy dist --project-name=earningsjr
 - [ ] Check PostHog dashboard (should see page views)
 - [ ] Try forgot password (should send email)
 - [ ] Try Stripe checkout (test mode)
-- [ ] Check API health: `https://earningsjr-api.thejmgfam.workers.dev/healthz`
+- [ ] Check API health: `https://api.earningsjr.com/healthz`
 
 ---
 
@@ -183,7 +183,7 @@ SENDER_EMAIL=EarningsJr <noreply@yourdomain.com> (optional)
 
 ### Frontend Env Vars (Cloudflare Pages):
 ```
-VITE_API_BASE=https://earningsjr-api.thejmgfam.workers.dev
+VITE_API_BASE=https://api.earningsjr.com
 VITE_SENTRY_DSN=https://xxx@xxx.ingest.sentry.io/xxx
 VITE_POSTHOG_KEY=phc_xxxxx
 VITE_POSTHOG_HOST=https://app.posthog.com
