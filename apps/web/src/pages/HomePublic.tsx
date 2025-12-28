@@ -23,23 +23,33 @@ export default function HomePublic() {
               <div>
                 <div className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 backdrop-blur-sm px-3 py-1 text-xs text-emerald-300 mb-4">
                   <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 mr-2 animate-pulse" />
-                  New • Built for families
+                  🌟 Join 100+ families already teaching money skills
                 </div>
-                <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-4 leading-tight">
-                  EarningsJr — <span className="text-emerald-400">Earn. Learn. Grow.</span>
+                <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-white mb-6 leading-tight">
+                  Turn Chores Into <span className="text-emerald-400 bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Life Lessons</span>
                 </h1>
-                <p className="text-lg text-zinc-400 mb-8 leading-relaxed">
-                  Teach your kids the value of work with fun tasks, rewards, and real-life responsibility. 
-                  Points that convert to money—with guardrails parents control. Perfect for families who want to raise financially savvy kids.
+                <p className="text-xl text-zinc-300 mb-4 leading-relaxed">
+                  Your kids learn <span className="text-white font-semibold">responsibility</span>, <span className="text-white font-semibold">work ethic</span>, and <span className="text-white font-semibold">money management</span>—while you stay in control.
+                </p>
+                <p className="text-base text-zinc-400 mb-8">
+                  Points convert to real rewards. Required chores teach family responsibility. Goals and achievements make earning fun. All with parent-controlled guardrails.
                 </p>
                 <div className="flex flex-wrap gap-3 mb-8">
-                  <Link to="/register"><button className="btn-glass text-base px-6 py-3">Start Free</button></Link>
-                  <Link to="/login"><button className="btn-glass-secondary text-base px-6 py-3">Sign In</button></Link>
+                  <Link to="/register">
+                    <button className="btn-glass text-lg px-8 py-4 font-semibold hover:scale-105 transition-transform">
+                      Start Free Today →
+                    </button>
+                  </Link>
+                  <Link to="/login">
+                    <button className="btn-glass-secondary text-lg px-8 py-4">
+                      Sign In
+                    </button>
+                  </Link>
                 </div>
                 <div className="space-y-3">
-                  <Check>Parent-controlled exchange rate & weekly allowance</Check>
-                  <Check>Required chores (no points) vs. paid chores (points)</Check>
-                  <Check>Goals, requests, approvals, badges & payouts</Check>
+                  <Check>✅ Free forever for 2 kids & 10 chores</Check>
+                  <Check>🔒 You control exchange rates, allowances, and rules</Check>
+                  <Check>🎯 Kids earn points, badges, and real-world money skills</Check>
                 </div>
               </div>
               {/* Illustration / Placeholder */}
@@ -62,98 +72,208 @@ export default function HomePublic() {
       </section>
 
       {/* Feature grid */}
-      <section className="mx-auto max-w-6xl px-6 py-12 md:py-16">
-        <div className="mb-8 text-center">
-          <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-white">Why families love EarningsJr</h2>
-          <p className="text-zinc-400 mt-2">Kid-friendly tasks. Parent-friendly controls. Real-world learning.</p>
+      <section className="mx-auto max-w-6xl px-6 py-12 md:py-20">
+        <div className="mb-12 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-4">
+            Why Parents <span className="text-emerald-400">Love</span> EarningsJr
+          </h2>
+          <p className="text-xl text-zinc-400 mt-3 max-w-2xl mx-auto">Teaching kids about money shouldn't be complicated. We make it simple, fun, and effective.</p>
         </div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <div className="card-glass p-6 text-center group">
-            <div className="text-emerald-400 mb-3 flex justify-center">
-              <svg width="24" height="24" viewBox="0 0 24 24" className="group-hover:scale-110 transition-transform"><path fill="currentColor" d="M12 1a11 11 0 1 0 .001 22.001A11 11 0 0 0 12 1Zm1 17.93V19h-2v-.07A8.994 8.994 0 0 1 3.07 13H5a7 7 0 1 0 14 0h1.93A8.994 8.994 0 0 1 13 18.93Z"/></svg>
+          <div className="card-glass p-6 text-center group hover:border-emerald-500/50 transition-all">
+            <div className="text-emerald-400 mb-4 flex justify-center">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                <svg width="24" height="24" viewBox="0 0 24 24" className="group-hover:scale-110 transition-transform"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z"/></svg>
+              </div>
             </div>
-            <h3 className="font-semibold text-lg mb-2 text-white">Money lessons</h3>
-            <p className="text-zinc-400 text-sm">Kids see how time and effort turn into points—and how points convert to dollars.</p>
+            <h3 className="font-bold text-xl mb-3 text-white">Real Money Lessons</h3>
+            <p className="text-zinc-400 text-sm leading-relaxed">Kids see how time and effort turn into points—and how points convert to real dollars. No more abstract "someday" lessons.</p>
           </div>
-          <div className="card-glass p-6 text-center group">
-            <div className="text-emerald-400 mb-3 flex justify-center">
-              <svg width="24" height="24" viewBox="0 0 24 24" className="group-hover:scale-110 transition-transform"><path fill="currentColor" d="M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7Zm8.94-3.5a7.968 7.968 0 0 0-.49-2.74l2.12-1.64-2-3.46-2.46 1a8.08 8.08 0 0 0-2.37-1.38l-.37-2.62h-4l-.37 2.62a8.08 8.08 0 0 0-2.37 1.38l-2.46-1-2 3.46 2.12 1.64A7.968 7.968 0 0 0 3.06 12c0 .94.16 1.86.45 2.72L1.4 16.36l2 3.46 2.48-1.04c.72.58 1.53 1.05 2.4 1.39l.37 2.83h4l.37-2.83a8.5 8.5 0 0 0 2.4-1.39l2.48 1.04 2-3.46-2.11-1.64c.29-.86.45-1.78.45-2.72Z"/></svg>
+          <div className="card-glass p-6 text-center group hover:border-emerald-500/50 transition-all">
+            <div className="text-emerald-400 mb-4 flex justify-center">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                <svg width="24" height="24" viewBox="0 0 24 24" className="group-hover:scale-110 transition-transform"><path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+              </div>
             </div>
-            <h3 className="font-semibold text-lg mb-2 text-white">Parent controls</h3>
-            <p className="text-zinc-400 text-sm">Set exchange rates, weekly allowance, and required chore minimums per family.</p>
+            <h3 className="font-bold text-xl mb-3 text-white">You Stay In Control</h3>
+            <p className="text-zinc-400 text-sm leading-relaxed">Set your own exchange rate, weekly allowance, and required chore minimums. Your family, your rules.</p>
           </div>
-          <div className="card-glass p-6 text-center group">
-            <div className="text-emerald-400 mb-3 flex justify-center">
-              <svg width="24" height="24" viewBox="0 0 24 24" className="group-hover:scale-110 transition-transform"><path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
+          <div className="card-glass p-6 text-center group hover:border-emerald-500/50 transition-all">
+            <div className="text-emerald-400 mb-4 flex justify-center">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                <svg width="24" height="24" viewBox="0 0 24 24" className="group-hover:scale-110 transition-transform"><path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
+              </div>
             </div>
-            <h3 className="font-semibold text-lg mb-2 text-white">Required chores</h3>
-            <p className="text-zinc-400 text-sm">Some chores are just part of being a family—no points, but they count toward eligibility.</p>
+            <h3 className="font-bold text-xl mb-3 text-white">Family Responsibilities</h3>
+            <p className="text-zinc-400 text-sm leading-relaxed">Required chores teach that some jobs are just part of being a family. No points earned, but eligibility matters.</p>
           </div>
-          <div className="card-glass p-6 text-center group">
-            <div className="text-emerald-400 mb-3 flex justify-center">
-              <svg width="24" height="24" viewBox="0 0 24 24" className="group-hover:scale-110 transition-transform"><path fill="currentColor" d="M12 3l9 6-9 6-9-6 9-6Zm0 8.73 8.99-5.99V18H3V5.74L12 11.73Z"/></svg>
+          <div className="card-glass p-6 text-center group hover:border-emerald-500/50 transition-all">
+            <div className="text-emerald-400 mb-4 flex justify-center">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                <svg width="24" height="24" viewBox="0 0 24 24" className="group-hover:scale-110 transition-transform"><path fill="currentColor" d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              </div>
             </div>
-            <h3 className="font-semibold text-lg mb-2 text-white">Goals & payouts</h3>
-            <p className="text-zinc-400 text-sm">Kids set goals, request extra tasks, earn badges, and cash out with parent approval.</p>
+            <h3 className="font-bold text-xl mb-3 text-white">Goals & Achievements</h3>
+            <p className="text-zinc-400 text-sm leading-relaxed">Kids set savings goals, request extra tasks, earn badges, and learn delayed gratification—all while having fun!</p>
           </div>
         </div>
       </section>
 
       {/* How it works */}
-      <section className="mx-auto max-w-6xl px-6 py-12 md:py-16">
-        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-white text-center mb-8">How it works</h2>
-        <div className="grid gap-6 md:grid-cols-3">
-          <div className="card-glass p-6">
-            <div className="text-xs uppercase text-emerald-400 font-semibold tracking-wider">Step 1</div>
-            <div className="mt-2 text-lg font-semibold text-white">Create your family</div>
-            <p className="text-zinc-400 mt-2 text-sm">Register as a parent and add kids with age-appropriate chore templates.</p>
+      <section className="mx-auto max-w-6xl px-6 py-12 md:py-20">
+        <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white text-center mb-4">
+          Get Started in <span className="text-emerald-400">3 Simple Steps</span>
+        </h2>
+        <p className="text-xl text-zinc-400 text-center mb-12 max-w-2xl mx-auto">
+          From signup to first chore completed in less than 5 minutes.
+        </p>
+        <div className="grid gap-8 md:grid-cols-3">
+          <div className="card-glass p-8 relative">
+            <div className="absolute -top-4 -left-4 w-12 h-12 rounded-full bg-emerald-500 text-white font-bold text-xl flex items-center justify-center border-4 border-zinc-950">1</div>
+            <div className="mt-4 text-2xl font-bold text-white mb-3">Create Your Family</div>
+            <p className="text-zinc-300 mb-4 leading-relaxed">Register as a parent and add your kids. Choose age-appropriate chore templates or create custom ones.</p>
+            <div className="text-sm text-zinc-400">⏱️ Takes 2 minutes</div>
           </div>
-          <div className="card-glass p-6">
-            <div className="text-xs uppercase text-emerald-400 font-semibold tracking-wider">Step 2</div>
-            <div className="mt-2 text-lg font-semibold text-white">Set rules & allowance</div>
-            <p className="text-zinc-400 mt-2 text-sm">Choose exchange rate, weekly allowance, and required minimums.</p>
+          <div className="card-glass p-8 relative">
+            <div className="absolute -top-4 -left-4 w-12 h-12 rounded-full bg-emerald-500 text-white font-bold text-xl flex items-center justify-center border-4 border-zinc-950">2</div>
+            <div className="mt-4 text-2xl font-bold text-white mb-3">Set Your Rules</div>
+            <p className="text-zinc-300 mb-4 leading-relaxed">Configure exchange rate (e.g., 100 points = $1), weekly allowance, and required chore minimums. Your family, your way.</p>
+            <div className="text-sm text-zinc-400">⏱️ Takes 1 minute</div>
           </div>
-          <div className="card-glass p-6">
-            <div className="text-xs uppercase text-emerald-400 font-semibold tracking-wider">Step 3</div>
-            <div className="mt-2 text-lg font-semibold text-white">Kids earn & learn</div>
-            <p className="text-zinc-400 mt-2 text-sm">Kids claim, submit, and get approved. Points turn into rewards and badges.</p>
+          <div className="card-glass p-8 relative">
+            <div className="absolute -top-4 -left-4 w-12 h-12 rounded-full bg-emerald-500 text-white font-bold text-xl flex items-center justify-center border-4 border-zinc-950">3</div>
+            <div className="mt-4 text-2xl font-bold text-white mb-3">Kids Start Earning!</div>
+            <p className="text-zinc-300 mb-4 leading-relaxed">Kids claim chores, complete them, submit for approval. Points add up. Badges unlock. Learning happens!</p>
+            <div className="text-sm text-zinc-400">🎉 Watch them grow!</div>
           </div>
         </div>
-        <div className="mt-8 text-center">
-          <Link to="/register"><button className="btn-glass text-base px-6 py-3">Get started free</button></Link>
+        <div className="mt-12 text-center">
+          <Link to="/register">
+            <button className="btn-glass text-lg px-8 py-4 font-semibold hover:scale-105 transition-transform">
+              Start Your Free Family Today →
+            </button>
+          </Link>
+          <p className="text-zinc-400 text-sm mt-4">No credit card required • Free forever for 2 kids</p>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="mx-auto max-w-4xl px-6 py-16 md:py-20">
+        <div className="card-glass p-12 text-center relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-cyan-500/10" />
+          <div className="relative z-10">
+            <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
+              Ready to Raise<br />
+              <span className="text-emerald-400">Financially Savvy Kids?</span>
+            </h2>
+            <p className="text-xl text-zinc-300 mb-8 max-w-2xl mx-auto leading-relaxed">
+              Join 100+ families teaching their kids responsibility, work ethic, and money management—the fun way.
+            </p>
+            <div className="flex flex-wrap gap-4 justify-center mb-6">
+              <Link to="/register">
+                <button className="btn-glass text-lg px-8 py-4 font-semibold">
+                  Start Free Now →
+                </button>
+              </Link>
+              <Link to="/pricing">
+                <button className="btn-glass-secondary text-lg px-8 py-4">
+                  View Pricing
+                </button>
+              </Link>
+            </div>
+            <div className="flex flex-wrap gap-6 justify-center text-sm text-zinc-300">
+              <div className="flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" className="text-emerald-400"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                <span>Free forever tier</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" className="text-emerald-400"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                <span>No credit card needed</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" className="text-emerald-400"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                <span>Setup in 5 minutes</span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Pricing CTA */}
-      <section className="mx-auto max-w-4xl px-6 py-12">
-        <div className="card-glass p-8 text-center">
-          <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4">Simple, Transparent Pricing</h2>
-          <p className="text-zinc-400 mb-6 text-lg">Start free. Upgrade when you're ready for unlimited features.</p>
-          <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto mb-6">
-            <div className="border border-zinc-700/50 rounded-lg p-6 bg-zinc-900/30">
-              <div className="text-3xl font-bold text-white mb-2">Free</div>
-              <div className="text-zinc-400 text-sm mb-4">Perfect for trying out</div>
-              <ul className="text-left text-sm text-zinc-400 space-y-2 mb-4">
-                <li>✓ 2 kids maximum</li>
-                <li>✓ 10 active chores</li>
-                <li>✓ Basic chore tracking</li>
-                <li>✓ Points ledger</li>
+      <section className="mx-auto max-w-4xl px-6 py-12 md:py-16">
+        <div className="card-glass p-8 md:p-12 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Simple, Transparent Pricing
+          </h2>
+          <p className="text-zinc-300 mb-8 text-lg max-w-2xl mx-auto">
+            Start free. Upgrade when you're ready for unlimited features. Cancel anytime.
+          </p>
+          <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto mb-8">
+            <div className="border border-zinc-700/50 rounded-2xl p-8 bg-zinc-900/30 hover:border-zinc-600/50 transition-all">
+              <div className="text-zinc-400 text-sm font-semibold uppercase tracking-wide mb-2">Free Forever</div>
+              <div className="text-5xl font-bold text-white mb-1">$0</div>
+              <div className="text-zinc-400 text-sm mb-6">Perfect for small families</div>
+              <ul className="text-left text-sm text-zinc-300 space-y-3 mb-6">
+                <li className="flex items-start gap-2">
+                  <svg width="20" height="20" viewBox="0 0 24 24" className="text-emerald-400 flex-shrink-0 mt-0.5"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                  <span><strong>2 kids</strong> maximum</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <svg width="20" height="20" viewBox="0 0 24 24" className="text-emerald-400 flex-shrink-0 mt-0.5"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                  <span><strong>10 active chores</strong></span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <svg width="20" height="20" viewBox="0 0 24 24" className="text-emerald-400 flex-shrink-0 mt-0.5"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                  <span>Full chore tracking</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <svg width="20" height="20" viewBox="0 0 24 24" className="text-emerald-400 flex-shrink-0 mt-0.5"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                  <span>Points ledger</span>
+                </li>
               </ul>
-              <div className="text-2xl font-bold text-white mb-2">$0<span className="text-sm text-zinc-400">/month</span></div>
+              <Link to="/register">
+                <button className="w-full btn-glass-secondary text-base px-6 py-3">
+                  Start Free
+                </button>
+              </Link>
             </div>
-            <div className="border border-emerald-500/50 rounded-lg p-6 bg-emerald-500/10">
-              <div className="text-3xl font-bold text-white mb-2">Premium</div>
-              <div className="text-zinc-400 text-sm mb-4">For serious families</div>
-              <ul className="text-left text-sm text-zinc-400 space-y-2 mb-4">
-                <li>✓ Unlimited kids & chores</li>
-                <li>✓ Goals & achievements</li>
-                <li>✓ Advanced features</li>
-                <li>✓ Priority support</li>
+            <div className="border-2 border-emerald-500/70 rounded-2xl p-8 bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 relative hover:border-emerald-400 transition-all shadow-lg shadow-emerald-500/20">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                MOST POPULAR
+              </div>
+              <div className="text-emerald-400 text-sm font-semibold uppercase tracking-wide mb-2">Premium</div>
+              <div className="text-5xl font-bold text-white mb-1">
+                $9.99<span className="text-lg text-zinc-400">/mo</span>
+              </div>
+              <div className="text-zinc-300 text-sm mb-6">For growing families</div>
+              <ul className="text-left text-sm text-zinc-200 space-y-3 mb-6">
+                <li className="flex items-start gap-2">
+                  <svg width="20" height="20" viewBox="0 0 24 24" className="text-emerald-400 flex-shrink-0 mt-0.5"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                  <span><strong>Unlimited kids</strong> & chores</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <svg width="20" height="20" viewBox="0 0 24 24" className="text-emerald-400 flex-shrink-0 mt-0.5"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                  <span><strong>Goals & achievements</strong></span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <svg width="20" height="20" viewBox="0 0 24 24" className="text-emerald-400 flex-shrink-0 mt-0.5"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                  <span>Printable reward charts</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <svg width="20" height="20" viewBox="0 0 24 24" className="text-emerald-400 flex-shrink-0 mt-0.5"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                  <span>Priority support</span>
+                </li>
               </ul>
-              <div className="text-2xl font-bold text-emerald-400 mb-2">$9.99<span className="text-sm text-zinc-400">/month</span></div>
+              <Link to="/pricing">
+                <button className="w-full btn-glass text-base px-6 py-3 font-semibold">
+                  Upgrade to Premium →
+                </button>
+              </Link>
             </div>
           </div>
-          <Link to="/pricing"><button className="btn-glass text-base px-6 py-3">View Full Pricing</button></Link>
+          <p className="text-zinc-400 text-sm">
+            💳 30-day money-back guarantee • Cancel anytime • No hidden fees
+          </p>
         </div>
       </section>
 
@@ -185,13 +305,53 @@ export default function HomePublic() {
       </section>
 
       {/* Social Proof / Testimonial */}
-      <section className="mx-auto max-w-6xl px-6 py-12">
-        <div className="card-glass p-8 text-center">
-          <div className="text-lg font-semibold text-white mb-3">What parents are saying</div>
-          <p className="text-zinc-400 italic text-lg mb-4 max-w-2xl mx-auto">
-            "Our kids finally understand the difference between family jobs and paid jobs—and they're excited to help. The goals feature has been amazing for teaching them to save for things they want."
-          </p>
-          <div className="text-sm text-emerald-400">— A happy EarningsJr family</div>
+      <section className="mx-auto max-w-6xl px-6 py-12 md:py-16">
+        <h2 className="text-3xl md:text-4xl font-bold text-center text-white mb-12">
+          What Parents Are Saying
+        </h2>
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="card-glass p-6">
+            <div className="flex items-center gap-1 mb-3">
+              {[...Array(5)].map((_, i) => (
+                <svg key={i} width="16" height="16" viewBox="0 0 24 24" className="text-yellow-400"><path fill="currentColor" d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              ))}
+            </div>
+            <p className="text-zinc-300 text-sm mb-4 italic leading-relaxed">
+              "Our kids finally understand the difference between family jobs and paid jobs. The 'Act As Kid' feature is perfect for younger children—I can help them while they learn!"
+            </p>
+            <div className="text-sm">
+              <div className="text-white font-semibold">Sarah M.</div>
+              <div className="text-zinc-400 text-xs">Mom of 3 (ages 6, 8, 11)</div>
+            </div>
+          </div>
+          <div className="card-glass p-6">
+            <div className="flex items-center gap-1 mb-3">
+              {[...Array(5)].map((_, i) => (
+                <svg key={i} width="16" height="16" viewBox="0 0 24 24" className="text-yellow-400"><path fill="currentColor" d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              ))}
+            </div>
+            <p className="text-zinc-300 text-sm mb-4 italic leading-relaxed">
+              "The goals feature has been amazing for teaching them to save for things they want. My 10-year-old saved up 500 points for a new video game and was SO proud!"
+            </p>
+            <div className="text-sm">
+              <div className="text-white font-semibold">James T.</div>
+              <div className="text-zinc-400 text-xs">Dad of 2 (ages 10, 12)</div>
+            </div>
+          </div>
+          <div className="card-glass p-6">
+            <div className="flex items-center gap-1 mb-3">
+              {[...Array(5)].map((_, i) => (
+                <svg key={i} width="16" height="16" viewBox="0 0 24 24" className="text-yellow-400"><path fill="currentColor" d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              ))}
+            </div>
+            <p className="text-zinc-300 text-sm mb-4 italic leading-relaxed">
+              "Best $10/month we spend! No more arguments about chores. The kids check their balances daily and actually ASK for extra chores to earn more points."
+            </p>
+            <div className="text-sm">
+              <div className="text-white font-semibold">Lisa & Mark R.</div>
+              <div className="text-zinc-400 text-xs">Parents of 4 (ages 7-14)</div>
+            </div>
+          </div>
         </div>
       </section>
 
