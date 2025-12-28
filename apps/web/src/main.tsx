@@ -22,6 +22,7 @@ import Settings from './pages/Settings'
 import Shell from './components/Shell'
 import { Toaster } from '@/components/ui/sonner'
 import { RequireAuth } from './guards'
+import { RedirectIfAuth } from './components/RedirectIfAuth'
 import { ErrorBoundary } from './ErrorBoundary'
 import { ThemeProvider } from './theme/ThemeProvider'
 import { ActingAsProvider } from './contexts/ActingAsContext'
@@ -52,7 +53,7 @@ const RouteWrapper = ({ children }: { children: React.ReactNode }) => (
 )
 
 const router = createBrowserRouter([
-  { path: '/', element: <RouteWrapper><Shell><HomePublic /></Shell></RouteWrapper> },
+  { path: '/', element: <RouteWrapper><RedirectIfAuth><Shell><HomePublic /></Shell></RedirectIfAuth></RouteWrapper> },
   { path: '/register', element: <RouteWrapper><Shell><Register /></Shell></RouteWrapper> },
   { path: '/login', element: <RouteWrapper><Shell><Login /></Shell></RouteWrapper> },
   { path: '/forgot-password', element: <RouteWrapper><Shell><ForgotPassword /></Shell></RouteWrapper> },

@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { Api } from '../api'
 import BottomTabBar from './BottomTabBar'
@@ -7,10 +7,11 @@ import { useActingAs } from '@/contexts/ActingAsContext'
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const isHome = location.pathname === '/';
   const isPublicPage = ['/', '/register', '/login', '/forgot-password', '/reset-password', '/pricing'].includes(location.pathname);
   const [me, setMe] = useState<any>(null);
-  const { actingAsKidId } = useActingAs();
+  const { actingAsKidId, clearActingAs } = useActingAs();
   
   useEffect(() => {
     if (!isPublicPage) {
@@ -26,7 +27,10 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       {/* Top Header - Always visible */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-zinc-900/30 backdrop-blur-xl border-b border-zinc-800/50">
         <nav className="mx-auto max-w-6xl flex items-center gap-3 px-6 py-4">
-          <Link to="/" className="text-xl font-semibold text-white tracking-tight">
+          <Link 
+            to={me?.authenticated ? (me?.user?.role === 'kid' ? '/kid' : '/home') : '/'} 
+            className="text-xl font-semibold text-white tracking-tight"
+          >
             Earnings<span className="text-emerald-400">Jr</span>
           </Link>
           
@@ -64,7 +68,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               <Link to="/admin" className="text-zinc-300 hover:text-emerald-400 transition px-2">Admin</Link>
               )}
               
-              {/* Profile/Avatar - Show when logged in */}
+              {/* Profile/Avatar with Logout - Show when logged in */}
               {me?.authenticated && (
                 <div className="ml-4 flex items-center gap-2 pl-4 border-l border-zinc-700/50">
                   <div className="flex items-center gap-2">
@@ -75,6 +79,24 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                       {me?.user?.first_name || me?.user?.email?.split('@')[0]}
                     </span>
                   </div>
+                  <button
+                    onClick={async () => {
+                      // Clear acting as kid state
+                      clearActingAs();
+                      // Clear session storage
+                      sessionStorage.clear();
+                      // Logout from API
+                      await Api.logout();
+                      // Redirect to landing page
+                      navigate('/');
+                      // Force reload to clear all state
+                      window.location.href = '/';
+                    }}
+                    className="ml-2 text-zinc-400 hover:text-zinc-200 transition text-sm px-2 py-1"
+                    title="Logout"
+                  >
+                    Logout
+                  </button>
                 </div>
               )}
             </div>
