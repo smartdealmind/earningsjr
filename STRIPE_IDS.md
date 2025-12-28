@@ -19,6 +19,19 @@
 - **Price ID:** `price_1SjOmZHy1vP8dbEzzIrgRjvG`
 - **Interval:** Yearly
 
+### Webhook Endpoint
+- **ID:** `we_1SjOoEHy1vP8dbEzoosj9GW3`
+- **URL:** `https://api.earningsjr.com/stripe/webhook`
+- **Secret:** `whsec_NP4buZPvXx9p0V4UySExwBYMBXE6Yi83`
+- **Status:** Enabled
+- **Events:**
+  - ✅ `checkout.session.completed`
+  - ✅ `customer.subscription.created`
+  - ✅ `customer.subscription.updated`
+  - ✅ `customer.subscription.deleted`
+  - ✅ `invoice.payment_succeeded`
+  - ✅ `invoice.payment_failed`
+
 ---
 
 ## 🔑 Next Steps: Add to Secrets
@@ -48,29 +61,10 @@ cd workers/api
 npx wrangler secret put STRIPE_SECRET_KEY
 # Paste your secret key from: https://dashboard.stripe.com/test/apikeys
 
-# Add Webhook Secret (after creating webhook)
+# Add Webhook Secret (already created above)
 npx wrangler secret put STRIPE_WEBHOOK_SECRET
-# Paste webhook signing secret (starts with whsec_)
+# Value: whsec_NP4buZPvXx9p0V4UySExwBYMBXE6Yi83
 ```
-
----
-
-## 🪝 Create Webhook Endpoint
-
-1. Go to: https://dashboard.stripe.com/test/webhooks
-2. Click **"Add endpoint"**
-3. **Endpoint URL:** `https://api.earningsjr.com/stripe/webhook`
-4. **Description:** `EarningsJr Production Webhook`
-5. **Events to send:**
-   - ✅ `checkout.session.completed`
-   - ✅ `customer.subscription.created`
-   - ✅ `customer.subscription.updated`
-   - ✅ `customer.subscription.deleted`
-   - ✅ `invoice.payment_succeeded`
-   - ✅ `invoice.payment_failed`
-6. Click **"Add endpoint"**
-7. **Copy the Signing secret** (starts with `whsec_`)
-8. Add it to Cloudflare Worker Secrets as `STRIPE_WEBHOOK_SECRET`
 
 ---
 
@@ -79,12 +73,12 @@ npx wrangler secret put STRIPE_WEBHOOK_SECRET
 - [x] Product created: `prod_TgmLkLe2370sUY`
 - [x] Monthly price created: `price_1SjOmYHy1vP8dbEz0geH4gfI`
 - [x] Yearly price created: `price_1SjOmZHy1vP8dbEzzIrgRjvG`
+- [x] Webhook endpoint created: `we_1SjOoEHy1vP8dbEzoosj9GW3`
 - [ ] Add `VITE_STRIPE_PRICE_ID_MONTHLY` to GitHub Secrets
 - [ ] Add `VITE_STRIPE_PRICE_ID_YEARLY` to GitHub Secrets
 - [ ] Verify `VITE_STRIPE_PUBLISHABLE_KEY` is in GitHub Secrets
 - [ ] Verify `STRIPE_SECRET_KEY` is in Cloudflare Worker Secrets
-- [ ] Create webhook endpoint in Stripe Dashboard
-- [ ] Add `STRIPE_WEBHOOK_SECRET` to Cloudflare Worker Secrets
+- [ ] Add `STRIPE_WEBHOOK_SECRET` to Cloudflare Worker Secrets (use value above)
 - [ ] Test checkout flow
 
 ---
@@ -97,6 +91,7 @@ npx wrangler secret put STRIPE_WEBHOOK_SECRET
 4. Use test card: `4242 4242 4242 4242`
 5. Complete checkout
 6. Verify subscription is created in database
+7. Check webhook logs in Stripe Dashboard
 
 ---
 
@@ -105,6 +100,7 @@ npx wrangler secret put STRIPE_WEBHOOK_SECRET
 **Product ID:** `prod_TgmLkLe2370sUY`
 **Monthly Price ID:** `price_1SjOmYHy1vP8dbEz0geH4gfI`
 **Yearly Price ID:** `price_1SjOmZHy1vP8dbEzzIrgRjvG`
+**Webhook ID:** `we_1SjOoEHy1vP8dbEzoosj9GW3`
+**Webhook Secret:** `whsec_NP4buZPvXx9p0V4UySExwBYMBXE6Yi83`
 
 All created in **Test Mode**. Switch to Live Mode when ready for production.
-
