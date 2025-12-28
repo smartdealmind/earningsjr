@@ -2332,23 +2332,11 @@ app.post('/stripe/webhook', async (c) => {
 
 export default {
   fetch: async (request: Request, env: Bindings, ctx: ExecutionContext) => {
-    // Initialize Sentry if DSN is provided (only once per Worker instance)
-    if (env.SENTRY_DSN && !(globalThis as any).__SENTRY_INIT__) {
-      Sentry.init({
-        dsn: env.SENTRY_DSN,
-        environment: 'production',
-        tracesSampleRate: 1.0,
-      });
-      (globalThis as any).__SENTRY_INIT__ = true;
-    }
-    
     try {
       return await app.fetch(request, env, ctx);
     } catch (error) {
-      // Capture errors with Sentry
-      if (env.SENTRY_DSN) {
-        Sentry.captureException(error);
-      }
+      // TODO: Re-enable Sentry after fixing init method
+      // Sentry.captureException(error);
       console.error('Unhandled error:', error);
       return new Response(JSON.stringify({ ok: false, error: 'internal_error' }), {
         status: 500,
@@ -2357,16 +2345,6 @@ export default {
     }
   },
   scheduled: async (event: ScheduledEvent, env: Bindings, ctx: ExecutionContext) => {
-    // Initialize Sentry if DSN is provided (only once per Worker instance)
-    if (env.SENTRY_DSN && !(globalThis as any).__SENTRY_INIT__) {
-      Sentry.init({
-        dsn: env.SENTRY_DSN,
-        environment: 'production',
-        tracesSampleRate: 1.0,
-      });
-      (globalThis as any).__SENTRY_INIT__ = true;
-    }
-    
     try {
     // Check which cron triggered this
     const cron = event.cron;
@@ -2403,10 +2381,8 @@ export default {
       await emitDueReminders(env);
     }
     } catch (error) {
-      // Capture cron errors with Sentry
-      if (env.SENTRY_DSN) {
-        Sentry.captureException(error);
-      }
+      // TODO: Re-enable Sentry after fixing init method
+      // Sentry.captureException(error);
       console.error('Scheduled task error:', error);
       throw error;
     }
