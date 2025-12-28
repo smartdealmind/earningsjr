@@ -48,17 +48,32 @@ export default function Achievements() {
       }
 
       // Use kid ID for kid-specific endpoint
-      const r = await fetch(`${API}/achievements?kid=${kidId}`, { credentials: 'include' });
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (actingAsKidId) {
+        headers['X-Acting-As-Kid-Id'] = actingAsKidId;
+      }
+      
+      const r = await fetch(`${API}/achievements?kid=${kidId}`, { 
+        credentials: 'include',
+        headers
+      });
+      
       if (!r.ok) {
-        const err = await r.json();
+        const err = await r.json().catch(() => ({ error: 'Unknown error' }));
         if (err.error === 'premium_required' || err.upgradeRequired) {
           setIsPremium(false);
-          toast.error(err.message || 'Achievements are a Premium feature.');
+          setStats({ total_approved: 0, total_points_earned: 0, streak_days: 0 });
+          setBadges([]);
+          // Don't show error toast for premium requirement - UpgradePrompt handles it
         } else {
+          setIsPremium(null); // Reset to show loading/error state
           toast.error(err.error || 'Failed to load achievements');
+          setStats({ total_approved: 0, total_points_earned: 0, streak_days: 0 });
+          setBadges([]);
         }
         return;
       }
+      
       const j = await r.json();
       setStats(j.stats || { total_approved: 0, total_points_earned: 0, streak_days: 0 });
       setBadges(j.badges || []);
@@ -102,9 +117,9 @@ export default function Achievements() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <StatBox label="Chores Approved" value={stats.total_approved} />
-            <StatBox label="Points Earned" value={stats.total_points_earned} />
-            <StatBox label="Current Streak" value={`${stats.streak_days} days`} />
+            <StatBox label="Chores Approved" value={stats?.total_approved ?? 0} />
+            <StatBox label="Points Earned" value={stats?.total_points_earned ?? 0} />
+            <StatBox label="Current Streak" value={`${stats?.streak_days ?? 0} days`} />
           </div>
         </CardContent>
       </Card>

@@ -2043,14 +2043,26 @@ app.post('/reminders/:id/ack', async (c) => {
 app.get('/achievements', async (c) => {
   const a = requireAuth(c); if (a) return a;
   const role = c.get('role'); const userId = c.get('userId');
-  const kidId = c.req.query('kid') || (role === 'kid' ? userId : null);
+  const actingAsKidId = c.get('actingAsKidId');
+  
+  // If parent is acting as kid, use that kid's ID
+  const kidId = actingAsKidId || c.req.query('kid') || (role === 'kid' ? userId : null);
   if (!kidId) return c.json({ ok:false, error:'kid_required' }, 400);
 
-  // family guard
-  const famUser = role === 'kid' ? kidId : userId;
-  const fam = await getUserFamilyId(c, famUser);
-  const kidFam = await c.env.DB.prepare(`SELECT family_id FROM KidProfile WHERE user_id=?`).bind(kidId).first<any>();
-  if (!kidFam || kidFam.family_id !== fam) return c.json({ ok:false, error:'wrong_family' }, 403);
+  // family guard (skip if acting as kid - already verified in middleware)
+  if (!actingAsKidId) {
+    const famUser = role === 'kid' ? kidId : userId;
+    const fam = await getUserFamilyId(c, famUser);
+    const kidFam = await c.env.DB.prepare(`SELECT family_id FROM KidProfile WHERE user_id=?`).bind(kidId).first<any>();
+    if (!kidFam || kidFam.family_id !== fam) return c.json({ ok:false, error:'wrong_family' }, 403);
+  }
+  
+  // Get family ID for subscription check
+  const fam = actingAsKidId 
+    ? (await c.env.DB.prepare(`SELECT family_id FROM KidProfile WHERE user_id=?`).bind(kidId).first<any>())?.family_id
+    : await getUserFamilyId(c, role === 'kid' ? kidId : userId);
+  
+  if (!fam) return c.json({ ok:false, error:'family_not_found' }, 400);
 
   // Check paywall: Achievements are premium-only
   const limits = await getSubscriptionLimits(c, fam);
