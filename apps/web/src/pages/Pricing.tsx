@@ -121,10 +121,15 @@ export default function Pricing() {
               <Button 
                 className="w-full" 
                 onClick={() => handleUpgrade(import.meta.env.VITE_STRIPE_PRICE_ID_MONTHLY || '')}
-                disabled={loading || !import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY}
+                disabled={loading || !import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || !import.meta.env.VITE_STRIPE_PRICE_ID_MONTHLY}
               >
                 {loading ? 'Loading...' : 'Start Free Trial'}
               </Button>
+              {!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY && (
+                <p className="text-xs text-center text-red-400 mt-2">
+                  Stripe not configured. Please add VITE_STRIPE_PUBLISHABLE_KEY to GitHub secrets.
+                </p>
+              )}
               <p className="text-xs text-center text-muted-foreground mt-2">
                 14-day free trial, then $9.99/month
               </p>

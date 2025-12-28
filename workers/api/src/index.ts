@@ -45,16 +45,21 @@ function isAllowedOrigin(origin?: string) {
 
 app.use('*', async (c, next) => {
   const origin = c.req.header('Origin');
-  const allow = isAllowedOrigin(origin) ? origin : '';
+  const allow = isAllowedOrigin(origin) ? origin : null;
+  
   if (allow) {
     c.header('Access-Control-Allow-Origin', allow);
     c.header('Vary', 'Origin');
     c.header('Access-Control-Allow-Credentials', 'true');
+    c.header('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS,DELETE');
+    c.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Acting-As-Kid-Id');
+    c.header('Access-Control-Expose-Headers', 'Set-Cookie');
   }
-  c.header('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS');
-  c.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Acting-As-Kid-Id');
-  c.header('Access-Control-Expose-Headers', 'Set-Cookie');
-  if (c.req.method === 'OPTIONS') return c.text('', 204);
+  
+  if (c.req.method === 'OPTIONS') {
+    return c.text('', 204);
+  }
+  
   await next();
 });
 
