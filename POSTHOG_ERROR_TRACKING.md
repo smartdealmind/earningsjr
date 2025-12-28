@@ -27,27 +27,32 @@ Filter out noise by suppressing certain exceptions:
    - **"Ignore exceptions that match"** dropdown (set to "Any")
    - **"+ Add filter"** button
 
-2. Click **"+ Add filter"** to create a suppression rule
+2. Click **"+ Add filter"** to open the filter dialog
 
-3. Common filters to add:
+3. **Important:** The search field is for typing the actual exception type name, not "Exception type" as a label!
+
+4. Common filters to add:
 
    **Filter 1: ChunkLoadError**
    - Click **"+ Add filter"**
-   - Select filter type (likely "Exception type" or "Error type")
-   - Enter: `ChunkLoadError`
+   - In the search field, type: `ChunkLoadError` (the actual error type name)
+   - If it shows "No results", that's okay - you can still type and save it
    - This suppresses chunk loading errors (common in production, usually harmless)
 
    **Filter 2: ResizeObserver errors**
    - Click **"+ Add filter"** again
-   - Select filter type
-   - Enter: `ResizeObserver loop limit exceeded`
+   - In the search field, type: `ResizeObserver` or `ResizeObserver loop limit exceeded`
    - This suppresses browser resize observer quirks
 
    **Filter 3: Third-party script errors**
    - Click **"+ Add filter"**
-   - Select filter type (likely "Exception message" or "Error message")
-   - Enter: `Third-party script error` or use "contains" match
+   - Type: `Script error` or the actual error message text
    - This suppresses external script errors
+
+**Note:** If you see "No results", you can still:
+- Type the exception type name directly (like `ChunkLoadError`)
+- The filter will work even if it's not in the autocomplete list
+- PostHog will match exceptions based on what you type
 
 4. The dropdown **"Ignore exceptions that match"** should be set to:
    - **"Any"** = Suppress if ANY filter matches (recommended)
@@ -55,11 +60,15 @@ Filter out noise by suppressing certain exceptions:
 
 5. Click **"Save"** button to save the suppression rules
 
-**Note:** The exact filter options may vary. Look for fields like:
-- Exception type / Error type
-- Exception message / Error message
-- Exception stack trace
-- URL / Page
+**Important Tips:**
+- The search field expects the **actual exception type name** (e.g., `ChunkLoadError`), not "Exception type" as a label
+- If you see "No results", you can still type the exception name and it will work
+- You might need to wait for errors to be captured first before they appear in autocomplete
+- Common exception types to suppress:
+  - `ChunkLoadError` - Failed to load JavaScript chunks
+  - `ResizeObserver loop limit exceeded` - Browser quirk
+  - `Script error` - Third-party script errors
+  - `NetworkError` - Network-related errors (optional)
 
 ---
 
