@@ -51,15 +51,16 @@ app.use('*', async (c, next) => {
     
     // Handle preflight OPTIONS requests immediately
     if (c.req.method === 'OPTIONS') {
+      const headers: Record<string, string> = {};
       if (allow) {
-        c.header('Access-Control-Allow-Origin', allow);
-        c.header('Vary', 'Origin');
-        c.header('Access-Control-Allow-Credentials', 'true');
-        c.header('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS,DELETE');
-        c.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Acting-As-Kid-Id');
-        c.header('Access-Control-Expose-Headers', 'Set-Cookie');
+        headers['Access-Control-Allow-Origin'] = allow;
+        headers['Vary'] = 'Origin';
+        headers['Access-Control-Allow-Credentials'] = 'true';
+        headers['Access-Control-Allow-Methods'] = 'GET,POST,PATCH,OPTIONS,DELETE';
+        headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization,X-Acting-As-Kid-Id';
+        headers['Access-Control-Expose-Headers'] = 'Set-Cookie';
       }
-      return c.text('', 204);
+      return new Response(null, { status: 204, headers });
     }
     
     // Set CORS headers for actual requests
