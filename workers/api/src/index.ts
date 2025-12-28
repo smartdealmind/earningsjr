@@ -1726,34 +1726,132 @@ app.post('/trusted/accept', async (c) => {
 });
 
 // --- SVG Reward Chart Generator ---
-function svgChart(opts: { kid: string; displayName: string; weekRequired: number; weekPaid: number; balance: number; currency: string }) {
-  const total = opts.weekRequired + opts.weekPaid || 1;
-  const reqPct = Math.round((opts.weekRequired/total)*100);
-  const paidPct = 100 - reqPct;
+function svgChart(opts: { 
+  kid: string; 
+  displayName: string; 
+  weekRequired: number; 
+  weekPaid: number; 
+  balance: number; 
+  currency: string;
+  pointsPerCurrency: number;
+  completedChores: Array<{title: string; points: number}>;
+  pendingChores: Array<{title: string; points: number}>;
+  weekStart: string;
+  weekEnd: string;
+}) {
+  const total = opts.weekRequired + opts.weekPaid;
+  const completedCount = total;
+  const totalChores = completedCount + opts.pendingChores.length;
+  const progressPct = totalChores > 0 ? Math.round((completedCount / totalChores) * 100) : 0;
+  
+  // Calculate dollar amount
+  const dollars = (opts.balance / opts.pointsPerCurrency).toFixed(2);
+  
+  // Calculate weekly earnings
+  const weeklyPoints = opts.completedChores.reduce((sum, ch) => sum + ch.points, 0);
+  const weeklyDollars = (weeklyPoints / opts.pointsPerCurrency).toFixed(2);
+  
+  // Encouraging message based on progress
+  let encouragement = "You can do it! 🌟";
+  if (progressPct >= 100) encouragement = "Perfect week! You're amazing! 🎉";
+  else if (progressPct >= 75) encouragement = "Great job! Almost there! 💪";
+  else if (progressPct >= 50) encouragement = "Good progress! Keep going! 👍";
+  
+  // Build completed chores list
+  let completedHTML = '';
+  let yPos = 310;
+  for (let i = 0; i < Math.min(opts.completedChores.length, 5); i++) {
+    const ch = opts.completedChores[i];
+    completedHTML += `  <text x="60" y="${yPos}" class="chore">• ${ch.title} (${ch.points} pts) ⭐</text>\n`;
+    yPos += 25;
+  }
+  if (opts.completedChores.length > 5) {
+    completedHTML += `  <text x="60" y="${yPos}" class="chore">...and ${opts.completedChores.length - 5} more!</text>\n`;
+    yPos += 25;
+  }
+  if (opts.completedChores.length === 0) {
+    completedHTML += `  <text x="60" y="${yPos}" class="chore-empty">No chores completed yet</text>\n`;
+    yPos += 25;
+  }
+  
+  // Build pending chores list
+  let pendingHTML = '';
+  const pendingYStart = yPos + 20;
+  yPos = pendingYStart;
+  for (let i = 0; i < Math.min(opts.pendingChores.length, 5); i++) {
+    const ch = opts.pendingChores[i];
+    pendingHTML += `  <text x="60" y="${yPos}" class="chore">• ${ch.title} (${ch.points} pts)</text>\n`;
+    yPos += 25;
+  }
+  if (opts.pendingChores.length > 5) {
+    pendingHTML += `  <text x="60" y="${yPos}" class="chore">...and ${opts.pendingChores.length - 5} more!</text>\n`;
+    yPos += 25;
+  }
+  if (opts.pendingChores.length === 0) {
+    pendingHTML += `  <text x="60" y="${yPos}" class="chore-empty">All chores done! 🎉</text>\n`;
+    yPos += 25;
+  }
+  
+  const chartHeight = Math.max(700, yPos + 100);
+  
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="900" height="600" viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
+<svg width="900" height="${chartHeight}" viewBox="0 0 900 ${chartHeight}" xmlns="http://www.w3.org/2000/svg">
   <style>
-    .title { font: 700 32px system-ui, -apple-system, Segoe UI, Roboto; }
-    .sub   { font: 500 18px system-ui, -apple-system, Segoe UI, Roboto; }
-    .num   { font: 700 20px system-ui, -apple-system, Segoe UI, Roboto; }
+    .title { font: 700 36px system-ui, -apple-system, Segoe UI, Roboto; fill: #1e293b; }
+    .subtitle { font: 500 20px system-ui, -apple-system, Segoe UI, Roboto; fill: #475569; }
+    .heading { font: 700 24px system-ui, -apple-system, Segoe UI, Roboto; fill: #0f172a; }
+    .sub { font: 500 18px system-ui, -apple-system, Segoe UI, Roboto; fill: #64748b; }
+    .num { font: 700 22px system-ui, -apple-system, Segoe UI, Roboto; fill: #10b981; }
+    .chore { font: 500 16px system-ui, -apple-system, Segoe UI, Roboto; fill: #334155; }
+    .chore-empty { font: 500 16px system-ui, -apple-system, Segoe UI, Roboto; fill: #94a3b8; font-style: italic; }
+    .footer { font: 400 14px system-ui, -apple-system, Segoe UI, Roboto; fill: #94a3b8; }
+    .encouragement { font: 700 20px system-ui, -apple-system, Segoe UI, Roboto; fill: #10b981; }
   </style>
-  <rect width="100%" height="100%" fill="#ffffff"/>
-  <text x="40" y="70" class="title">EarningsJr — Weekly Reward Chart</text>
-  <text x="40" y="110" class="sub">Kid: ${opts.displayName}</text>
-  <text x="40" y="140" class="sub">Balance: ${opts.balance} pts (~ ${opts.currency})</text>
-
-  <text x="40" y="200" class="sub">This week</text>
-  <rect x="40" y="220" width="${reqPct*7}" height="32" fill="#0ea5e9"/>
-  <rect x="${40+reqPct*7}" y="220" width="${paidPct*7}" height="32" fill="#22c55e"/>
-  <text x="40" y="270" class="num">Required: ${opts.weekRequired} (${reqPct}%)</text>
-  <text x="260" y="270" class="num">Paid: ${opts.weekPaid} (${paidPct}%)</text>
-
-  <text x="40" y="330" class="sub">Sign-offs</text>
-  <circle cx="60" cy="365" r="8" fill="#0ea5e9"/><text x="80" y="370" class="sub">Required</text>
-  <circle cx="220" cy="365" r="8" fill="#22c55e"/><text x="240" y="370" class="sub">Paid</text>
-
-  <text x="40" y="440" class="sub">Parents: You can print and stick this on the fridge!</text>
-  <text x="40" y="470" class="sub" fill="#64748b">Generated by EarningsJr</text>
+  
+  <!-- Background with gradient -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e2e8f0;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#bg)"/>
+  
+  <!-- Border -->
+  <rect x="20" y="20" width="860" height="${chartHeight-40}" fill="white" stroke="#cbd5e1" stroke-width="2" rx="16"/>
+  
+  <!-- Header -->
+  <text x="450" y="70" class="title" text-anchor="middle">🌟 ${opts.displayName}'s Week</text>
+  <text x="450" y="100" class="subtitle" text-anchor="middle">${opts.weekStart} - ${opts.weekEnd}</text>
+  
+  <!-- Balance -->
+  <text x="450" y="140" class="num" text-anchor="middle">💰 Balance: $${dollars} (${opts.balance} points)</text>
+  
+  <!-- Progress Section -->
+  <text x="50" y="180" class="heading">🎯 This Week: ${completedCount} of ${totalChores} chores done!</text>
+  
+  <!-- Progress bar -->
+  <rect x="50" y="195" width="800" height="32" fill="#e2e8f0" rx="16"/>
+  <rect x="50" y="195" width="${800 * (progressPct/100)}" height="32" fill="#10b981" rx="16"/>
+  <text x="450" y="217" class="sub" text-anchor="middle">${progressPct}%</text>
+  
+  <!-- Completed Chores -->
+  <text x="50" y="270" class="heading">✅ Completed (${opts.completedChores.length}):</text>
+${completedHTML}
+  
+  <!-- Pending Chores -->
+  <text x="50" y="${pendingYStart - 10}" class="heading">⏳ Still To Do (${opts.pendingChores.length}):</text>
+${pendingHTML}
+  
+  <!-- Summary -->
+  <text x="450" y="${yPos + 30}" class="num" text-anchor="middle">🏆 Total Earned This Week: ${weeklyPoints} points ($${weeklyDollars})</text>
+  
+  <!-- Encouragement -->
+  <text x="450" y="${yPos + 65}" class="encouragement" text-anchor="middle">${encouragement}</text>
+  
+  <!-- Footer -->
+  <text x="450" y="${yPos + 100}" class="footer" text-anchor="middle">Parents: Print and stick this on the fridge!</text>
+  <text x="450" y="${yPos + 120}" class="footer" text-anchor="middle">Generated by EarningsJr</text>
 </svg>`;
 }
 
@@ -1769,23 +1867,65 @@ app.post('/charts/reward', async (c) => {
   const kidRow = await c.env.DB.prepare(`SELECT display_name, points_balance, family_id FROM KidProfile WHERE user_id=?`).bind(kid).first<any>();
   if (!kidRow || kidRow.family_id !== myFam) return c.json({ ok:false, error:'wrong_family' }, 403);
 
-  // count approved required/paid in last 7d
-  const since = Date.now() - 7*24*60*60*1000;
-  const rows = await c.env.DB.prepare(`
-    SELECT is_required, COUNT(*) AS n FROM Chore
-    WHERE kid_user_id=? AND status='approved' AND created_at >= ?
-    GROUP BY is_required
-  `).bind(kid, since).all<any>();
-  let req=0, paid=0;
-  for (const r of (rows.results ?? [])) (r.is_required===1 ? (req+=r.n) : (paid+=r.n));
+  // Get exchange rate
+  const ex = await c.env.DB.prepare(`SELECT currency_code, points_per_currency FROM ExchangeRule WHERE family_id=?`).bind(myFam).first<any>();
+  const pointsPerCurrency = ex?.points_per_currency ?? 100;
+  
+  // Get week date range
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0 = Sunday
+  const daysToMonday = (dayOfWeek + 6) % 7; // Days since Monday
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - daysToMonday);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  
+  const weekStartStr = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const weekEndStr = weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const since = weekStart.getTime();
 
-  const ex = await c.env.DB.prepare(`SELECT currency_code FROM ExchangeRule WHERE family_id=?`).bind(myFam).first<any>();
+  // Get completed chores (approved this week)
+  const completedRows = await c.env.DB.prepare(`
+    SELECT title, points, is_required FROM Chore
+    WHERE kid_user_id=? AND status='approved' AND created_at >= ?
+    ORDER BY created_at DESC
+  `).bind(kid, since).all<any>();
+  
+  const completedChores = (completedRows.results ?? []).map((r: any) => ({
+    title: r.title,
+    points: r.points || 0
+  }));
+  
+  let req = 0, paid = 0;
+  for (const r of (completedRows.results ?? [])) {
+    if (r.is_required === 1) req++;
+    else paid++;
+  }
+  
+  // Get pending chores (open, claimed, or submitted)
+  const pendingRows = await c.env.DB.prepare(`
+    SELECT title, points FROM Chore
+    WHERE kid_user_id=? AND status IN ('open', 'claimed', 'submitted')
+    ORDER BY created_at ASC
+  `).bind(kid).all<any>();
+  
+  const pendingChores = (pendingRows.results ?? []).map((r: any) => ({
+    title: r.title,
+    points: r.points || 0
+  }));
 
   const svg = svgChart({
-    kid, displayName: kidRow.display_name,
-    weekRequired: req, weekPaid: paid,
+    kid, 
+    displayName: kidRow.display_name,
+    weekRequired: req, 
+    weekPaid: paid,
     balance: kidRow.points_balance,
-    currency: ex?.currency_code ?? 'USD'
+    currency: ex?.currency_code ?? 'USD',
+    pointsPerCurrency,
+    completedChores,
+    pendingChores,
+    weekStart: weekStartStr,
+    weekEnd: weekEndStr
   });
 
   const key = `charts/${kid}/${Date.now()}.svg`;
