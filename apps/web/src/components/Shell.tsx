@@ -11,7 +11,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const isPublicPage = ['/', '/register', '/login', '/forgot-password', '/reset-password', '/pricing'].includes(location.pathname);
   const [me, setMe] = useState<any>(null);
   const { actingAsKidId } = useActingAs();
-  const bannerHeight = actingAsKidId ? 56 : 0; // Banner is ~56px tall
+  const bannerHeight = actingAsKidId ? 48 : 0; // Banner is ~48px tall (compact)
   
   useEffect(() => {
     if (!isHome) {
@@ -25,7 +25,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       <ActingAsBanner />
       
       {/* Top Header - Always visible */}
-      <header className="fixed left-0 right-0 z-40 bg-zinc-900/30 backdrop-blur-xl border-b border-zinc-800/50" style={{ top: `${bannerHeight}px` }}>
+      <header className="fixed top-0 left-0 right-0 z-50 bg-zinc-900/30 backdrop-blur-xl border-b border-zinc-800/50">
         <nav className="mx-auto max-w-6xl flex items-center gap-3 px-6 py-4">
           <Link to="/" className="text-xl font-semibold text-white tracking-tight">
             Earnings<span className="text-emerald-400">Jr</span>
@@ -76,7 +76,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           : isPublicPage
           ? 'pt-16'
           : 'mx-auto max-w-6xl px-4 py-6 min-h-[calc(100vh-8rem)] pb-20 md:pb-6'
-      } style={{ paddingTop: `${64 + bannerHeight}px` }}>
+      } style={{ paddingTop: actingAsKidId ? '112px' : '64px' }}>
         {children}
       </main>
       

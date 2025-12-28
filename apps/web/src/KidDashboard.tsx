@@ -54,8 +54,8 @@ export default function KidDashboard() {
 
   return (
     <div className="section-glass max-w-6xl mx-auto">
-      <div className="relative mb-8">
-        <h1 className="text-3xl font-bold text-white relative z-10">Kid Dashboard</h1>
+      <div className="relative mb-4 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold text-white relative z-10">Kid Dashboard</h1>
         <div className="absolute inset-x-0 -top-6 h-20 bg-[radial-gradient(40%_60%_at_10%_0%,rgba(16,185,129,0.15),transparent)]" />
       </div>
 
@@ -82,43 +82,52 @@ export default function KidDashboard() {
         </div>
       ) : (
         <>
-          <div className="text-emerald-400 text-lg mb-6">Hi, <span className="text-white font-semibold">{me?.user?.first_name || me?.user?.email}</span>!</div>
+          <div className="text-emerald-400 text-base md:text-lg mb-4 md:mb-6">Hi, <span className="text-white font-semibold">{me?.user?.first_name || me?.user?.email}</span>!</div>
           
-          <h2 className="text-2xl font-semibold text-white mb-4">Your Chores</h2>
+          <h2 className="text-xl md:text-2xl font-semibold text-white mb-3 md:mb-4">Your Chores</h2>
           
-          <div className="space-y-3">
+          <div className="space-y-2 md:space-y-3">
             {chores.map(c => (
-              <div key={c.id} className="card-glass p-4 hover:scale-[1.01] transition-transform">
-                <div className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <div className="font-semibold text-white text-lg">{c.title}</div>
-                    <div className="text-sm text-zinc-400 mt-1">
-                      <span className="inline-flex items-center gap-2 flex-wrap">
-                        <span>{c.category || 'general'}</span>
-                        <span>•</span>
-                        <span className="text-emerald-400 font-medium">{c.points} pts</span>
-                        <span>•</span>
-                        <span className={c.is_required ? 'text-amber-400' : 'text-zinc-400'}>
-                          {c.is_required ? 'required' : 'paid'}
-                        </span>
-                        <span>•</span>
-                        <span className="text-zinc-300">status: <span className="font-medium">{c.status}</span></span>
-                      </span>
-                    </div>
-                    {actingAsKidId && ['open','claimed'].includes(c.status) && (
-                      <div className="mt-2 text-xs text-emerald-400/80">
-                        ✓ Will auto-approve when completed
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    {c.status === 'open' && <button className="btn-glass" onClick={() => claim(c.id)}>Claim</button>}
-                    {['open','claimed'].includes(c.status) && (
-                      <button className="btn-glass" onClick={() => submit(c.id)}>
-                        {actingAsKidId ? 'Complete' : 'Submit'}
-                      </button>
-                    )}
-                  </div>
+              <div key={c.id} className="card-glass p-3 md:p-4 hover:bg-zinc-800/40 transition-colors">
+                {/* Line 1: Title + Points */}
+                <div className="flex items-center justify-between mb-1.5 md:mb-2">
+                  <h3 className="font-semibold text-white text-base md:text-lg flex-1">{c.title}</h3>
+                  <span className="text-emerald-400 font-bold text-base md:text-lg ml-2">{c.points} pts</span>
+                </div>
+                
+                {/* Line 2: Meta info (compact horizontal) */}
+                <div className="flex items-center gap-1.5 md:gap-2 text-xs md:text-sm text-zinc-400 mb-2 md:mb-3 flex-wrap">
+                  <span>{c.category || 'general'}</span>
+                  <span>•</span>
+                  <span className={c.is_required ? 'text-amber-400' : 'text-zinc-400'}>
+                    {c.is_required ? 'required' : 'paid'}
+                  </span>
+                  {actingAsKidId && ['open','claimed'].includes(c.status) && (
+                    <>
+                      <span>•</span>
+                      <span className="text-emerald-400 font-medium">✓ Auto-approves</span>
+                    </>
+                  )}
+                </div>
+                
+                {/* Line 3: Action buttons */}
+                <div className="flex gap-2">
+                  {c.status === 'open' && (
+                    <button 
+                      className="btn-glass flex-1 text-sm md:text-base py-2 px-3 md:px-4" 
+                      onClick={() => claim(c.id)}
+                    >
+                      Claim
+                    </button>
+                  )}
+                  {['open','claimed'].includes(c.status) && (
+                    <button 
+                      className="btn-glass flex-1 text-sm md:text-base py-2 px-3 md:px-4 bg-emerald-500/20 hover:bg-emerald-500/30 border-emerald-500/40" 
+                      onClick={() => submit(c.id)}
+                    >
+                      {actingAsKidId ? 'Complete' : 'Submit'}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
