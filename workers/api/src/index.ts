@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import Stripe from 'stripe';
+import * as Sentry from '@sentry/cloudflare';
 import { uid, hashPassword, verifyPassword, cookieSerialize } from './lib';
 import { ok, err, readJson, rateLimit } from './http';
 import { audit } from './logger';
@@ -13,6 +14,7 @@ type Bindings = {
   SENDER_EMAIL?: string; // e.g., "EarningsJr <noreply@earningsjr.com>"
   STRIPE_SECRET_KEY: string;
   STRIPE_WEBHOOK_SECRET?: string;
+  SENTRY_DSN?: string;
 };
 
 type Vars = { userId?: string, role?: string, actingAsKidId?: string };
@@ -2292,8 +2294,43 @@ app.post('/stripe/webhook', async (c) => {
 });
 
 export default {
-  fetch: app.fetch,
+  fetch: async (request: Request, env: Bindings, ctx: ExecutionContext) => {
+    // Initialize Sentry if DSN is provided (only once per Worker instance)
+    if (env.SENTRY_DSN && !(globalThis as any).__SENTRY_INIT__) {
+      Sentry.init({
+        dsn: env.SENTRY_DSN,
+        environment: 'production',
+        tracesSampleRate: 1.0,
+      });
+      (globalThis as any).__SENTRY_INIT__ = true;
+    }
+    
+    try {
+      return await app.fetch(request, env, ctx);
+    } catch (error) {
+      // Capture errors with Sentry
+      if (env.SENTRY_DSN) {
+        Sentry.captureException(error);
+      }
+      console.error('Unhandled error:', error);
+      return new Response(JSON.stringify({ ok: false, error: 'internal_error' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+  },
   scheduled: async (event: ScheduledEvent, env: Bindings, ctx: ExecutionContext) => {
+    // Initialize Sentry if DSN is provided (only once per Worker instance)
+    if (env.SENTRY_DSN && !(globalThis as any).__SENTRY_INIT__) {
+      Sentry.init({
+        dsn: env.SENTRY_DSN,
+        environment: 'production',
+        tracesSampleRate: 1.0,
+      });
+      (globalThis as any).__SENTRY_INIT__ = true;
+    }
+    
+    try {
     // Check which cron triggered this
     const cron = event.cron;
     
@@ -2327,6 +2364,14 @@ export default {
     // Daily reminders: run on the 15-minute cron ("*/15 * * * *")
     if (cron === '*/15 * * * *') {
       await emitDueReminders(env);
+    }
+    } catch (error) {
+      // Capture cron errors with Sentry
+      if (env.SENTRY_DSN) {
+        Sentry.captureException(error);
+      }
+      console.error('Scheduled task error:', error);
+      throw error;
     }
   }
 };
