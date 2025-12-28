@@ -104,7 +104,10 @@ export default function Balances() {
                     className="btn-glass text-xs md:text-sm px-2 md:px-3 py-1"
                     onClick={() => {
                       setActingAsKid(k.kid_user_id, k.display_name);
-                      navigate('/kid');
+                      // Small delay to ensure state is set before navigation
+                      setTimeout(() => {
+                        navigate('/kid');
+                      }, 50);
                     }}
                   >
                     <span className="hidden sm:inline">Act As</span>

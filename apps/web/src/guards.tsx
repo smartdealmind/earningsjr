@@ -8,18 +8,22 @@ export function RequireAuth({ children, role }: { children: React.ReactNode; rol
   const { actingAsKidId } = useActingAs()
   
   useEffect(() => { 
+    // Also check sessionStorage directly to avoid race conditions
+    const actingAsKidIdFromStorage = typeof window !== 'undefined' ? sessionStorage.getItem('actingAsKidId') : null
+    const effectiveActingAsKidId = actingAsKidId || actingAsKidIdFromStorage
+    
     Api.me().then(m => {
       let pass = !!m?.authenticated
       
       if (role) {
         // If role is 'kid', allow if:
         // 1. User is actually a kid, OR
-        // 2. Parent is acting as kid
+        // 2. Parent is acting as kid (check both context and sessionStorage)
         if (role === 'kid') {
-          pass = pass && (m?.user?.role === 'kid' || actingAsKidId || m?.actingAsKid)
+          pass = pass && (m?.user?.role === 'kid' || effectiveActingAsKidId || m?.actingAsKid)
         } else {
           // For parent role, must be parent (not acting as kid)
-          pass = pass && m?.user?.role === role && !actingAsKidId
+          pass = pass && m?.user?.role === role && !effectiveActingAsKidId
         }
       }
       
