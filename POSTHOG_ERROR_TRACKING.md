@@ -23,17 +23,43 @@ PostHog has built-in error tracking that captures exceptions from your frontend.
 
 Filter out noise by suppressing certain exceptions:
 
-1. In **Suppression rules**, click **"Add rule"**
-2. Common rules to add:
-   - **Type:** `ChunkLoadError` (common in production, usually harmless)
-   - **Type:** `ResizeObserver loop limit exceeded` (browser quirk, not critical)
-   - **Message contains:** `Third-party script error` (external scripts)
+1. In **Suppression rules** section, you'll see:
+   - **"Ignore exceptions that match"** dropdown (set to "Any")
+   - **"+ Add filter"** button
 
-**Example:**
-```
-Type: ChunkLoadError
-Action: Suppress
-```
+2. Click **"+ Add filter"** to create a suppression rule
+
+3. Common filters to add:
+
+   **Filter 1: ChunkLoadError**
+   - Click **"+ Add filter"**
+   - Select filter type (likely "Exception type" or "Error type")
+   - Enter: `ChunkLoadError`
+   - This suppresses chunk loading errors (common in production, usually harmless)
+
+   **Filter 2: ResizeObserver errors**
+   - Click **"+ Add filter"** again
+   - Select filter type
+   - Enter: `ResizeObserver loop limit exceeded`
+   - This suppresses browser resize observer quirks
+
+   **Filter 3: Third-party script errors**
+   - Click **"+ Add filter"**
+   - Select filter type (likely "Exception message" or "Error message")
+   - Enter: `Third-party script error` or use "contains" match
+   - This suppresses external script errors
+
+4. The dropdown **"Ignore exceptions that match"** should be set to:
+   - **"Any"** = Suppress if ANY filter matches (recommended)
+   - **"All"** = Suppress only if ALL filters match
+
+5. Click **"Save"** button to save the suppression rules
+
+**Note:** The exact filter options may vary. Look for fields like:
+- Exception type / Error type
+- Exception message / Error message
+- Exception stack trace
+- URL / Page
 
 ---
 
