@@ -43,24 +43,46 @@ function isAllowedOrigin(origin?: string) {
   } catch { return false; }
 }
 
+// CORS middleware - must be first to handle OPTIONS
 app.use('*', async (c, next) => {
-  const origin = c.req.header('Origin');
-  const allow = isAllowedOrigin(origin) ? origin : null;
-  
-  if (allow) {
-    c.header('Access-Control-Allow-Origin', allow);
-    c.header('Vary', 'Origin');
-    c.header('Access-Control-Allow-Credentials', 'true');
-    c.header('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS,DELETE');
-    c.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Acting-As-Kid-Id');
-    c.header('Access-Control-Expose-Headers', 'Set-Cookie');
+  try {
+    const origin = c.req.header('Origin');
+    const allow = isAllowedOrigin(origin) ? origin : null;
+    
+    // Handle preflight OPTIONS requests immediately
+    if (c.req.method === 'OPTIONS') {
+      if (allow) {
+        c.header('Access-Control-Allow-Origin', allow);
+        c.header('Vary', 'Origin');
+        c.header('Access-Control-Allow-Credentials', 'true');
+        c.header('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS,DELETE');
+        c.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Acting-As-Kid-Id');
+        c.header('Access-Control-Expose-Headers', 'Set-Cookie');
+      }
+      return c.text('', 204);
+    }
+    
+    // Set CORS headers for actual requests
+    if (allow) {
+      c.header('Access-Control-Allow-Origin', allow);
+      c.header('Vary', 'Origin');
+      c.header('Access-Control-Allow-Credentials', 'true');
+      c.header('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS,DELETE');
+      c.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Acting-As-Kid-Id');
+      c.header('Access-Control-Expose-Headers', 'Set-Cookie');
+    }
+    
+    await next();
+  } catch (error) {
+    // Ensure CORS headers are set even on error
+    const origin = c.req.header('Origin');
+    const allow = isAllowedOrigin(origin) ? origin : null;
+    if (allow) {
+      c.header('Access-Control-Allow-Origin', allow);
+      c.header('Access-Control-Allow-Credentials', 'true');
+    }
+    throw error;
   }
-  
-  if (c.req.method === 'OPTIONS') {
-    return c.text('', 204);
-  }
-  
-  await next();
 });
 
 // --- Session extractor ---
