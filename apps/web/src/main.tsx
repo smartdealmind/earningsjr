@@ -11,6 +11,7 @@ import ResetPassword from './pages/ResetPassword'
 import Onboarding from './Onboarding'
 import Approvals from './Approvals'
 import KidDashboard from './KidDashboard'
+import KidChores from './KidChores'
 import Goals from './Goals'
 import Admin from './Admin'
 import Achievements from './Achievements'
@@ -65,6 +66,7 @@ const router = createBrowserRouter([
   { path: '/settings', element: <RouteWrapper><RequireAuth role="parent"><Shell><Settings /></Shell></RequireAuth></RouteWrapper> },
   // Kid routes
   { path: '/kid', element: <RouteWrapper><RequireAuth role="kid"><Shell><KidDashboard /></Shell></RequireAuth></RouteWrapper> },
+  { path: '/kid/chores', element: <RouteWrapper><RequireAuth role="kid"><Shell><KidChores /></Shell></RequireAuth></RouteWrapper> },
   { path: '/goals', element: <RouteWrapper><RequireAuth role="kid"><Shell><Goals /></Shell></RequireAuth></RouteWrapper> },
   { path: '/achievements', element: <RouteWrapper><RequireAuth role="kid"><Shell><Achievements /></Shell></RequireAuth></RouteWrapper> },
   // Legacy routes (redirect to new structure)

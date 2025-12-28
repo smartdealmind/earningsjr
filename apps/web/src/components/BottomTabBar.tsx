@@ -118,13 +118,13 @@ export default function BottomTabBar() {
           </Link>
           
           <Link
-            to="/settings"
+            to="/kid/chores"
             className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-              isActive('/settings') ? 'text-emerald-400' : 'text-zinc-400'
+              isActive('/kid/chores') ? 'text-emerald-400' : 'text-zinc-400'
             }`}
           >
-            <span className="text-2xl mb-1">⚙️</span>
-            <span className="text-xs font-medium">Settings</span>
+            <span className="text-2xl mb-1">📋</span>
+            <span className="text-xs font-medium">Chores</span>
           </Link>
         </div>
       </nav>
