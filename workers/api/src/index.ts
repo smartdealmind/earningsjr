@@ -1739,6 +1739,16 @@ function svgChart(opts: {
   weekStart: string;
   weekEnd: string;
 }) {
+  // Helper to escape XML special characters
+  const escapeXml = (text: string) => {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  };
+  
   const total = opts.weekRequired + opts.weekPaid;
   const completedCount = total;
   const totalChores = completedCount + opts.pendingChores.length;
@@ -1762,7 +1772,7 @@ function svgChart(opts: {
   let yPos = 310;
   for (let i = 0; i < Math.min(opts.completedChores.length, 5); i++) {
     const ch = opts.completedChores[i];
-    completedHTML += `  <text x="60" y="${yPos}" class="chore">• ${ch.title} (${ch.points} pts) ⭐</text>\n`;
+    completedHTML += `  <text x="60" y="${yPos}" class="chore">• ${escapeXml(ch.title)} (${ch.points} pts) ⭐</text>\n`;
     yPos += 25;
   }
   if (opts.completedChores.length > 5) {
@@ -1780,7 +1790,7 @@ function svgChart(opts: {
   yPos = pendingYStart;
   for (let i = 0; i < Math.min(opts.pendingChores.length, 5); i++) {
     const ch = opts.pendingChores[i];
-    pendingHTML += `  <text x="60" y="${yPos}" class="chore">• ${ch.title} (${ch.points} pts)</text>\n`;
+    pendingHTML += `  <text x="60" y="${yPos}" class="chore">• ${escapeXml(ch.title)} (${ch.points} pts)</text>\n`;
     yPos += 25;
   }
   if (opts.pendingChores.length > 5) {
@@ -1821,8 +1831,8 @@ function svgChart(opts: {
   <rect x="20" y="20" width="860" height="${chartHeight-40}" fill="white" stroke="#cbd5e1" stroke-width="2" rx="16"/>
   
   <!-- Header -->
-  <text x="450" y="70" class="title" text-anchor="middle">🌟 ${opts.displayName}'s Week</text>
-  <text x="450" y="100" class="subtitle" text-anchor="middle">${opts.weekStart} - ${opts.weekEnd}</text>
+  <text x="450" y="70" class="title" text-anchor="middle">🌟 ${escapeXml(opts.displayName)}'s Week</text>
+  <text x="450" y="100" class="subtitle" text-anchor="middle">${escapeXml(opts.weekStart)} - ${escapeXml(opts.weekEnd)}</text>
   
   <!-- Balance -->
   <text x="450" y="140" class="num" text-anchor="middle">💰 Balance: $${dollars} (${opts.balance} points)</text>
