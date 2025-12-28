@@ -45,39 +45,36 @@ function isAllowedOrigin(origin?: string) {
 
 // CORS middleware - must be first to handle OPTIONS
 app.use('*', async (c, next) => {
+  const origin = c.req.header('Origin');
+  const allow = isAllowedOrigin(origin) ? origin : null;
+  
+  // Handle preflight OPTIONS requests immediately - MUST return response, not continue
+  if (c.req.method === 'OPTIONS') {
+    // Return 200 OK for preflight (not 204)
+    return c.text('', 200, allow ? {
+      'Access-Control-Allow-Origin': allow,
+      'Vary': 'Origin',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Allow-Methods': 'GET,POST,PATCH,OPTIONS,DELETE',
+      'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Acting-As-Kid-Id',
+      'Access-Control-Expose-Headers': 'Set-Cookie',
+    } : {});
+  }
+  
+  // Set CORS headers for actual requests
+  if (allow) {
+    c.header('Access-Control-Allow-Origin', allow);
+    c.header('Vary', 'Origin');
+    c.header('Access-Control-Allow-Credentials', 'true');
+    c.header('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS,DELETE');
+    c.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Acting-As-Kid-Id');
+    c.header('Access-Control-Expose-Headers', 'Set-Cookie');
+  }
+  
   try {
-    const origin = c.req.header('Origin');
-    const allow = isAllowedOrigin(origin) ? origin : null;
-    
-    // Handle preflight OPTIONS requests immediately
-    if (c.req.method === 'OPTIONS') {
-      const headers: Record<string, string> = {};
-      if (allow) {
-        headers['Access-Control-Allow-Origin'] = allow;
-        headers['Vary'] = 'Origin';
-        headers['Access-Control-Allow-Credentials'] = 'true';
-        headers['Access-Control-Allow-Methods'] = 'GET,POST,PATCH,OPTIONS,DELETE';
-        headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization,X-Acting-As-Kid-Id';
-        headers['Access-Control-Expose-Headers'] = 'Set-Cookie';
-      }
-      return new Response(null, { status: 204, headers });
-    }
-    
-    // Set CORS headers for actual requests
-    if (allow) {
-      c.header('Access-Control-Allow-Origin', allow);
-      c.header('Vary', 'Origin');
-      c.header('Access-Control-Allow-Credentials', 'true');
-      c.header('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS,DELETE');
-      c.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Acting-As-Kid-Id');
-      c.header('Access-Control-Expose-Headers', 'Set-Cookie');
-    }
-    
     await next();
   } catch (error) {
     // Ensure CORS headers are set even on error
-    const origin = c.req.header('Origin');
-    const allow = isAllowedOrigin(origin) ? origin : null;
     if (allow) {
       c.header('Access-Control-Allow-Origin', allow);
       c.header('Access-Control-Allow-Credentials', 'true');
