@@ -43,7 +43,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               {(me?.user?.role === 'parent' || me?.user?.role === 'helper') && (
                 <>
                   <Link to="/home" className="text-zinc-300 hover:text-emerald-400 transition px-2">Home</Link>
-                  <Link to="/approvals" className="text-zinc-300 hover:text-emerald-400 transition px-2">Approvals</Link>
+              <Link to="/approvals" className="text-zinc-300 hover:text-emerald-400 transition px-2">Approvals</Link>
                   <Link to="/kids" className="text-zinc-300 hover:text-emerald-400 transition px-2">Kids</Link>
                   <Link to="/settings" className="text-zinc-300 hover:text-emerald-400 transition px-2">Settings</Link>
                 </>
@@ -53,15 +53,15 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               {me?.user?.role === 'kid' && (
                 <>
                   <Link to="/kid" className="text-zinc-300 hover:text-emerald-400 transition px-2">Home</Link>
-                  <Link to="/goals" className="text-zinc-300 hover:text-emerald-400 transition px-2">Goals</Link>
-                  <Link to="/achievements" className="text-zinc-300 hover:text-emerald-400 transition px-2">Achievements</Link>
+              <Link to="/goals" className="text-zinc-300 hover:text-emerald-400 transition px-2">Goals</Link>
+              <Link to="/achievements" className="text-zinc-300 hover:text-emerald-400 transition px-2">Achievements</Link>
                   <Link to="/settings" className="text-zinc-300 hover:text-emerald-400 transition px-2">Settings</Link>
                 </>
               )}
               
               {/* Admin Only */}
               {me?.user?.is_admin && (
-                <Link to="/admin" className="text-zinc-300 hover:text-emerald-400 transition px-2">Admin</Link>
+              <Link to="/admin" className="text-zinc-300 hover:text-emerald-400 transition px-2">Admin</Link>
               )}
             </div>
           )}

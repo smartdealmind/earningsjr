@@ -1409,9 +1409,9 @@ app.get('/goals', async (c) => {
 
   // family guard (skip if acting as kid - already verified in middleware)
   if (!actingAsKidId) {
-    const myFam = await getUserFamilyId(c, role === 'kid' ? kid : userId);
-    const kidFam = await c.env.DB.prepare(`SELECT family_id, points_balance FROM KidProfile WHERE user_id=?`).bind(kid).first<any>();
-    if (!kidFam || kidFam.family_id !== myFam) return c.json({ ok:false, error:'wrong_family' }, 403);
+  const myFam = await getUserFamilyId(c, role === 'kid' ? kid : userId);
+  const kidFam = await c.env.DB.prepare(`SELECT family_id, points_balance FROM KidProfile WHERE user_id=?`).bind(kid).first<any>();
+  if (!kidFam || kidFam.family_id !== myFam) return c.json({ ok:false, error:'wrong_family' }, 403);
   }
 
   const goals = await c.env.DB.prepare(`
@@ -1893,7 +1893,7 @@ app.patch('/reminders/prefs', async (c) => {
 app.get('/reminders', async (c) => {
   const a = requireAuth(c); if (a) return a;
   const role = c.get('role'); const userId = c.get('userId');
-  
+
   let where = ''; let arg: any[] = [];
   if (role === 'kid') { 
     where = 'WHERE R.kid_user_id=?'; 
@@ -1909,13 +1909,13 @@ app.get('/reminders', async (c) => {
   }
 
   try {
-    const rows = await c.env.DB.prepare(`
-      SELECT R.*, K.display_name
-      FROM ReminderEvent R JOIN KidProfile K ON K.user_id=R.kid_user_id
-      ${where}
+  const rows = await c.env.DB.prepare(`
+    SELECT R.*, K.display_name
+    FROM ReminderEvent R JOIN KidProfile K ON K.user_id=R.kid_user_id
+    ${where}
       ORDER BY R.created_at DESC LIMIT 200
-    `).bind(...arg).all();
-    return c.json({ ok:true, reminders: rows.results ?? [] });
+  `).bind(...arg).all();
+  return c.json({ ok:true, reminders: rows.results ?? [] });
   } catch (error: any) {
     console.error('Reminders query error:', error);
     return c.json({ ok: false, error: 'database_error', message: error?.message || 'Failed to fetch reminders' }, 500);

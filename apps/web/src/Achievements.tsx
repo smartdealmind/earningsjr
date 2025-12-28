@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { useActingAs } from '@/contexts/ActingAsContext';
 
 const API = import.meta.env.VITE_API_BASE;
 
@@ -8,30 +9,37 @@ export default function Achievements() {
   const [stats, setStats] = useState<any>(null);
   const [badges, setBadges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { actingAsKidId } = useActingAs();
 
   useEffect(() => {
     loadAchievements();
-  }, []);
+  }, [actingAsKidId]);
 
   async function loadAchievements() {
     setLoading(true);
     try {
-      // Get current user ID first (kid routes use current user)
-      const meRes = await fetch(`${API}/me`, { credentials: 'include' });
-      if (!meRes.ok) {
-        toast.error('Failed to load user data');
-        setLoading(false);
-        return;
-      }
-      const me = await meRes.json();
-      if (!me?.id) {
-        toast.error('User not found');
-        setLoading(false);
-        return;
+      // Use actingAsKidId if parent is acting as kid, otherwise get from /me
+      let kidId = actingAsKidId;
+      
+      if (!kidId) {
+        // Get current user ID first (kid routes use current user)
+        const meRes = await fetch(`${API}/me`, { credentials: 'include' });
+        if (!meRes.ok) {
+          toast.error('Failed to load user data');
+          setLoading(false);
+          return;
+        }
+        const me = await meRes.json();
+        if (!me?.id) {
+          toast.error('User not found');
+          setLoading(false);
+          return;
+        }
+        kidId = me.id;
       }
 
-      // Use current user ID for kid-specific endpoint
-      const r = await fetch(`${API}/achievements?kid=${me.id}`, { credentials: 'include' });
+      // Use kid ID for kid-specific endpoint
+      const r = await fetch(`${API}/achievements?kid=${kidId}`, { credentials: 'include' });
       if (!r.ok) {
         const err = await r.json();
         toast.error(err.error || 'Failed to load achievements');

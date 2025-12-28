@@ -1,11 +1,13 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { Api } from '../api'
+import { useActingAs } from '@/contexts/ActingAsContext'
 
 export default function BottomTabBar() {
   const location = useLocation()
   const [pendingCount, setPendingCount] = useState(0)
   const [me, setMe] = useState<any>(null)
+  const { actingAsKidId } = useActingAs()
 
   useEffect(() => {
     Api.me().then(setMe).catch(() => setMe(null))
@@ -80,8 +82,8 @@ export default function BottomTabBar() {
     )
   }
 
-  // Kid tabs
-  if (me?.user?.role === 'kid') {
+  // Kid tabs (show when kid OR parent acting as kid)
+  if (me?.user?.role === 'kid' || actingAsKidId || me?.actingAsKid) {
     return (
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-zinc-900/95 backdrop-blur-xl border-t border-zinc-800/50 safe-area-inset-bottom">
         <div className="max-w-6xl mx-auto flex items-center justify-around h-16 px-2">

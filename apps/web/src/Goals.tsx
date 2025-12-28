@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { useActingAs } from '@/contexts/ActingAsContext';
 
 export default function Goals() {
   const [goals, setGoals] = useState<any[]>([]);
@@ -12,6 +13,7 @@ export default function Goals() {
   const [elig, setElig] = useState<any>(null);
   const [reqMsg, setReqMsg] = useState('');
   const [me, setMe] = useState<any>(null);
+  const { actingAsKidId } = useActingAs();
 
   // Get current user ID (kid routes use current user)
   useEffect(() => {
@@ -19,14 +21,16 @@ export default function Goals() {
   }, []);
 
   async function load() {
-    if (!me?.id) return; // Wait for user data
+    // Use actingAsKidId if parent is acting as kid, otherwise use me.id
+    const kidId = actingAsKidId || me?.id;
+    if (!kidId) return; // Wait for user data
     
     try {
-      // For kid routes, use current user ID
-      const g = await Api.goalsList(me.id);
+      // For kid routes, use kid ID (either from actingAsKidId or me.id)
+      const g = await Api.goalsList(kidId);
       setGoals(g.goals || []);
       
-      const e = await Api.eligibility(me.id);
+      const e = await Api.eligibility(kidId);
       if (e.ok) {
         setElig(e);
       }
@@ -35,7 +39,7 @@ export default function Goals() {
       toast.error('Failed to load goals');
     }
   }
-  useEffect(() => { load(); }, [me]);
+  useEffect(() => { load(); }, [me, actingAsKidId]);
 
   async function create() {
     if (!title) {
