@@ -26,12 +26,12 @@ export default function Login() {
         toast.success('Welcome back!');
         // Check user role and redirect appropriately
         const me = await Api.me();
-        if (me.user?.role === 'parent') {
-          navigate('/balances');
+        if (me.user?.role === 'parent' || me.user?.role === 'helper') {
+          navigate('/home');
         } else if (me.user?.role === 'kid') {
           navigate('/kid');
         } else {
-          navigate('/');
+          navigate('/home');
         }
       } else {
         toast.error(r.error || 'Invalid email or password');

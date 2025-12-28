@@ -13,10 +13,10 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const { actingAsKidId } = useActingAs();
   
   useEffect(() => {
-    if (!isHome) {
+    if (!isPublicPage) {
       Api.me().then(setMe).catch(() => setMe(null));
     }
-  }, [isHome]);
+  }, [isPublicPage]);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -62,6 +62,20 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               {/* Admin Only */}
               {me?.user?.is_admin && (
               <Link to="/admin" className="text-zinc-300 hover:text-emerald-400 transition px-2">Admin</Link>
+              )}
+              
+              {/* Profile/Avatar - Show when logged in */}
+              {me?.authenticated && (
+                <div className="ml-4 flex items-center gap-2 pl-4 border-l border-zinc-700/50">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-semibold text-sm">
+                      {me?.user?.first_name?.[0]?.toUpperCase() || me?.user?.email?.[0]?.toUpperCase() || 'U'}
+                    </div>
+                    <span className="text-zinc-300 text-sm hidden lg:inline">
+                      {me?.user?.first_name || me?.user?.email?.split('@')[0]}
+                    </span>
+                  </div>
+                </div>
               )}
             </div>
           )}
