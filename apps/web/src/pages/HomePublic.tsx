@@ -30,7 +30,7 @@ export default function HomePublic() {
                 </h1>
                 <p className="text-lg text-zinc-400 mb-8 leading-relaxed">
                   Teach your kids the value of work with fun tasks, rewards, and real-life responsibility. 
-                  Points that convert to money—with guardrails parents control.
+                  Points that convert to money—with guardrails parents control. Perfect for families who want to raise financially savvy kids.
                 </p>
                 <div className="flex flex-wrap gap-3 mb-8">
                   <Link to="/register"><button className="btn-glass text-base px-6 py-3">Start Free</button></Link>
@@ -124,19 +124,74 @@ export default function HomePublic() {
         </div>
       </section>
 
-      {/* Tiny testimonial / FAQ */}
+      {/* Pricing CTA */}
+      <section className="mx-auto max-w-4xl px-6 py-12">
+        <div className="card-glass p-8 text-center">
+          <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4">Simple, Transparent Pricing</h2>
+          <p className="text-zinc-400 mb-6 text-lg">Start free. Upgrade when you're ready for unlimited features.</p>
+          <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto mb-6">
+            <div className="border border-zinc-700/50 rounded-lg p-6 bg-zinc-900/30">
+              <div className="text-3xl font-bold text-white mb-2">Free</div>
+              <div className="text-zinc-400 text-sm mb-4">Perfect for trying out</div>
+              <ul className="text-left text-sm text-zinc-400 space-y-2 mb-4">
+                <li>✓ 2 kids maximum</li>
+                <li>✓ 10 active chores</li>
+                <li>✓ Basic chore tracking</li>
+                <li>✓ Points ledger</li>
+              </ul>
+              <div className="text-2xl font-bold text-white mb-2">$0<span className="text-sm text-zinc-400">/month</span></div>
+            </div>
+            <div className="border border-emerald-500/50 rounded-lg p-6 bg-emerald-500/10">
+              <div className="text-3xl font-bold text-white mb-2">Premium</div>
+              <div className="text-zinc-400 text-sm mb-4">For serious families</div>
+              <ul className="text-left text-sm text-zinc-400 space-y-2 mb-4">
+                <li>✓ Unlimited kids & chores</li>
+                <li>✓ Goals & achievements</li>
+                <li>✓ Advanced features</li>
+                <li>✓ Priority support</li>
+              </ul>
+              <div className="text-2xl font-bold text-emerald-400 mb-2">$9.99<span className="text-sm text-zinc-400">/month</span></div>
+            </div>
+          </div>
+          <Link to="/pricing"><button className="btn-glass text-base px-6 py-3">View Full Pricing</button></Link>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="mx-auto max-w-4xl px-6 py-12">
+        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-white text-center mb-8">Frequently Asked Questions</h2>
+        <div className="space-y-4">
+          <div className="card-glass p-6">
+            <h3 className="text-lg font-semibold text-white mb-2">How does the points system work?</h3>
+            <p className="text-zinc-400 text-sm">Parents set an exchange rate (e.g., 100 points = $1). Kids earn points by completing paid chores, which can be converted to real money or used for goals. Required chores don't earn points but count toward eligibility for payouts.</p>
+          </div>
+          <div className="card-glass p-6">
+            <h3 className="text-lg font-semibold text-white mb-2">What's the difference between free and premium?</h3>
+            <p className="text-zinc-400 text-sm">Free tier includes 2 kids and 10 active chores—perfect for small families. Premium unlocks unlimited kids and chores, plus Goals, Achievements, and advanced features. Both tiers include core chore tracking and points management.</p>
+          </div>
+          <div className="card-glass p-6">
+            <h3 className="text-lg font-semibold text-white mb-2">Can I cancel anytime?</h3>
+            <p className="text-zinc-400 text-sm">Yes! Cancel your Premium subscription anytime. You'll continue to have access until the end of your billing period. We offer a 30-day money-back guarantee if you're not satisfied.</p>
+          </div>
+          <div className="card-glass p-6">
+            <h3 className="text-lg font-semibold text-white mb-2">Is my data secure?</h3>
+            <p className="text-zinc-400 text-sm">Absolutely. We use industry-standard encryption, secure authentication, and never share your family's data. Your information is stored securely in Cloudflare's infrastructure.</p>
+          </div>
+          <div className="card-glass p-6">
+            <h3 className="text-lg font-semibold text-white mb-2">What age is this for?</h3>
+            <p className="text-zinc-400 text-sm">EarningsJr works best for kids ages 6-14. Younger kids can use it with parent help (via "Act As Kid" mode), while older kids can manage their own accounts independently.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Social Proof / Testimonial */}
       <section className="mx-auto max-w-6xl px-6 py-12">
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="card-glass p-6">
-            <div className="text-lg font-semibold text-white mb-3">Parents say</div>
-            <p className="text-zinc-400 italic">"Our kids finally understand the difference between family jobs and paid jobs—and they're excited to help."</p>
-            <div className="mt-4 text-sm text-emerald-400">— A happy EarningsJr family</div>
-          </div>
-          <div className="card-glass p-6">
-            <div className="text-lg font-semibold text-white mb-3">Is this free?</div>
-            <p className="text-zinc-400 mb-4">Yes, during MVP. We'll keep a generous free tier.</p>
-            <Link to="/register"><button className="btn-glass">Create your family</button></Link>
-          </div>
+        <div className="card-glass p-8 text-center">
+          <div className="text-lg font-semibold text-white mb-3">What parents are saying</div>
+          <p className="text-zinc-400 italic text-lg mb-4 max-w-2xl mx-auto">
+            "Our kids finally understand the difference between family jobs and paid jobs—and they're excited to help. The goals feature has been amazing for teaching them to save for things they want."
+          </p>
+          <div className="text-sm text-emerald-400">— A happy EarningsJr family</div>
         </div>
       </section>
 
