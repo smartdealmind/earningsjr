@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { useActingAs } from '@/contexts/ActingAsContext';
+import UpgradePrompt from '@/components/UpgradePrompt';
 
 const API = import.meta.env.VITE_API_BASE;
 
@@ -9,6 +10,7 @@ export default function Achievements() {
   const [stats, setStats] = useState<any>(null);
   const [badges, setBadges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isPremium, setIsPremium] = useState<boolean | null>(null);
   const { actingAsKidId } = useActingAs();
 
   useEffect(() => {
@@ -38,11 +40,23 @@ export default function Achievements() {
         kidId = me.id;
       }
 
+      // Check subscription status first
+      const subRes = await fetch(`${API}/stripe/subscription`, { credentials: 'include' });
+      if (subRes.ok) {
+        const sub = await subRes.json();
+        setIsPremium(sub.hasSubscription || false);
+      }
+
       // Use kid ID for kid-specific endpoint
       const r = await fetch(`${API}/achievements?kid=${kidId}`, { credentials: 'include' });
       if (!r.ok) {
         const err = await r.json();
-        toast.error(err.error || 'Failed to load achievements');
+        if (err.error === 'premium_required' || err.upgradeRequired) {
+          setIsPremium(false);
+          toast.error(err.message || 'Achievements are a Premium feature.');
+        } else {
+          toast.error(err.error || 'Failed to load achievements');
+        }
         return;
       }
       const j = await r.json();
@@ -63,6 +77,19 @@ export default function Achievements() {
             Loading achievements...
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  // Show upgrade prompt if not premium
+  if (isPremium === false) {
+    return (
+      <div className="max-w-4xl mx-auto my-6">
+        <UpgradePrompt 
+          title="Achievements are a Premium Feature"
+          message="Track badges, stats, and streaks to motivate kids."
+          feature="Achievements"
+        />
       </div>
     );
   }

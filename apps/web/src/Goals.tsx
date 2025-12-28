@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { useActingAs } from '@/contexts/ActingAsContext';
+import UpgradePrompt from '@/components/UpgradePrompt';
 
 export default function Goals() {
   const [goals, setGoals] = useState<any[]>([]);
@@ -13,6 +14,7 @@ export default function Goals() {
   const [elig, setElig] = useState<any>(null);
   const [reqMsg, setReqMsg] = useState('');
   const [me, setMe] = useState<any>(null);
+  const [isPremium, setIsPremium] = useState<boolean | null>(null);
   const { actingAsKidId } = useActingAs();
 
   // Get current user ID (kid routes use current user)
@@ -26,6 +28,15 @@ export default function Goals() {
     if (!kidId) return; // Wait for user data
     
     try {
+      // Check subscription status
+      const subRes = await fetch(`${import.meta.env.VITE_API_BASE}/stripe/subscription`, {
+        credentials: 'include'
+      });
+      if (subRes.ok) {
+        const sub = await subRes.json();
+        setIsPremium(sub.hasSubscription || false);
+      }
+      
       // For kid routes, use kid ID (either from actingAsKidId or me.id)
       const g = await Api.goalsList(kidId);
       setGoals(g.goals || []);
@@ -52,7 +63,12 @@ export default function Goals() {
       toast.success('Goal created!');
       await load();
     } else {
-      toast.error('Failed to create goal');
+      if (r.error === 'premium_required' || r.upgradeRequired) {
+        setIsPremium(false);
+        toast.error(r.message || 'Goals are a Premium feature. Upgrade to create savings goals.');
+      } else {
+        toast.error(r.message || 'Failed to create goal');
+      }
     }
   }
 
@@ -75,6 +91,19 @@ export default function Goals() {
       toast.error('Failed to send request');
       setReqMsg('Error: ' + (r.error || ''));
     }
+  }
+
+  // Show upgrade prompt if not premium
+  if (isPremium === false) {
+    return (
+      <div className="max-w-4xl mx-auto my-6">
+        <UpgradePrompt 
+          title="Goals are a Premium Feature"
+          message="Create savings goals to help kids learn financial planning."
+          feature="Goals"
+        />
+      </div>
+    );
   }
 
   return (

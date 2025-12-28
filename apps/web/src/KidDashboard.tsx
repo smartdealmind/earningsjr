@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Api } from './api';
 import { useActingAs } from '@/contexts/ActingAsContext';
 import { toast } from 'sonner';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function KidDashboard() {
   const [me, setMe] = useState<any>(null);
@@ -83,6 +85,58 @@ export default function KidDashboard() {
       ) : (
         <>
           <div className="text-emerald-400 text-base md:text-lg mb-4 md:mb-6">Hi, <span className="text-white font-semibold">{me?.user?.first_name || me?.user?.email}</span>!</div>
+          
+          {/* Three Main Cards: Goals, Achievements, Chores */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-6 md:mb-8">
+            <Link to="/goals">
+              <Card className="card-glass hover:bg-zinc-800/60 transition cursor-pointer h-full">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg md:text-xl flex items-center gap-2">
+                    <span className="text-2xl">🎯</span>
+                    My Goals
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-zinc-400">View and manage your savings goals</p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link to="/achievements">
+              <Card className="card-glass hover:bg-zinc-800/60 transition cursor-pointer h-full">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg md:text-xl flex items-center gap-2">
+                    <span className="text-2xl">🏆</span>
+                    Achievements
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-zinc-400">See your badges and stats</p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Card className="card-glass h-full">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg md:text-xl flex items-center gap-2">
+                  <span className="text-2xl">📋</span>
+                  Your Chores
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-zinc-400 mb-2">
+                  {chores.length === 0 
+                    ? 'No chores available' 
+                    : `${chores.length} chore${chores.length === 1 ? '' : 's'} available`}
+                </p>
+                {chores.length > 0 && (
+                  <p className="text-xs text-emerald-400">
+                    {chores.filter((c: any) => c.status === 'open').length} open • {chores.filter((c: any) => c.status === 'claimed').length} claimed
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
           
           <h2 className="text-xl md:text-2xl font-semibold text-white mb-3 md:mb-4">Your Chores</h2>
           

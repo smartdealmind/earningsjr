@@ -117,6 +117,50 @@ async function getUserFamilyId(c: any, userId: string) {
   ).bind(userId).first<{ family_id: string }>();
   return (fm as any)?.family_id ?? null;
 }
+
+// Check if family has active premium subscription
+async function hasPremiumSubscription(c: any, familyId: string): Promise<boolean> {
+  const fam = await c.env.DB.prepare(
+    `SELECT subscription_status, subscription_current_period_end FROM Family WHERE id=?`
+  ).bind(familyId).first<{ subscription_status: string, subscription_current_period_end: number | null }>();
+  
+  if (!fam) return false;
+  
+  // Active, trialing, or past_due (still has access) = premium
+  const activeStatuses = ['active', 'trialing', 'past_due'];
+  if (activeStatuses.includes(fam.subscription_status)) {
+    // Check if subscription hasn't expired
+    if (fam.subscription_current_period_end) {
+      return Date.now() < fam.subscription_current_period_end;
+    }
+    return true;
+  }
+  
+  return false;
+}
+
+// Get subscription limits for a family
+async function getSubscriptionLimits(c: any, familyId: string): Promise<{ maxKids: number, maxChores: number, hasGoals: boolean, hasAchievements: boolean }> {
+  const isPremium = await hasPremiumSubscription(c, familyId);
+  
+  if (isPremium) {
+    return {
+      maxKids: 999, // Unlimited
+      maxChores: 999, // Unlimited
+      hasGoals: true,
+      hasAchievements: true
+    };
+  }
+  
+  // Free tier limits
+  return {
+    maxKids: 2,
+    maxChores: 10,
+    hasGoals: false,
+    hasAchievements: false
+  };
+}
+
 function nowMs() { return Date.now(); }
 
 function genKidEmail(kidId: string) {
@@ -897,6 +941,21 @@ app.post('/kids', async (c) => {
   const familyId = await getUserFamilyId(c, parentId);
   if (!familyId) return c.json({ ok: false, error: 'family_not_found' }, 400);
 
+  // Check paywall: limit kids on free tier
+  const limits = await getSubscriptionLimits(c, familyId);
+  const kidCount = await c.env.DB.prepare(
+    `SELECT COUNT(*) as count FROM KidProfile WHERE family_id=?`
+  ).bind(familyId).first<{ count: number }>();
+  
+  if ((kidCount?.count ?? 0) >= limits.maxKids) {
+    return c.json({ 
+      ok: false, 
+      error: 'kid_limit_reached',
+      message: `Free tier allows up to ${limits.maxKids} kids. Upgrade to Premium for unlimited kids.`,
+      upgradeRequired: true
+    }, 403);
+  }
+
   const body = await c.req.json<{ display_name: string; birthdate?: string; pin?: string }>();
   const { display_name, birthdate, pin } = body || {};
   if (!display_name) return c.json({ ok: false, error: 'missing_display_name' }, 400);
@@ -942,6 +1001,27 @@ app.post('/chores', async (c) => {
     | { from_template_ids: string[]; kid_user_id?: string; due_at?: number; };
 
   const b = await c.req.json<Body>();
+
+  // Check paywall: limit chores on free tier
+  const limits = await getSubscriptionLimits(c, familyId);
+  const choreCount = await c.env.DB.prepare(
+    `SELECT COUNT(*) as count FROM Chore WHERE family_id=? AND status NOT IN ('approved', 'denied', 'expired')`
+  ).bind(familyId).first<{ count: number }>();
+  
+  const templatesToCreate = ('from_template_ids' in b) ? (b.from_template_ids?.length || 0) : 0;
+  const singleChore = ('title' in b) ? 1 : 0;
+  const newChoresCount = templatesToCreate || singleChore;
+  
+  if ((choreCount?.count ?? 0) + newChoresCount > limits.maxChores) {
+    return c.json({ 
+      ok: false, 
+      error: 'chore_limit_reached',
+      message: `Free tier allows up to ${limits.maxChores} active chores. Upgrade to Premium for unlimited chores.`,
+      upgradeRequired: true,
+      currentCount: choreCount?.count ?? 0,
+      maxAllowed: limits.maxChores
+    }, 403);
+  }
 
   const created: string[] = [];
   const now = nowMs();
@@ -1362,6 +1442,17 @@ app.post('/goals', async (c) => {
   }
 
   const familyId = await getUserFamilyId(c, kidId);
+  
+  // Check paywall: Goals are premium-only
+  const limits = await getSubscriptionLimits(c, familyId);
+  if (!limits.hasGoals) {
+    return c.json({ 
+      ok: false, 
+      error: 'premium_required',
+      message: 'Goals are a Premium feature. Upgrade to Premium to create savings goals.',
+      upgradeRequired: true
+    }, 403);
+  }
   const ex = await c.env.DB.prepare(`SELECT points_per_currency,currency_code FROM ExchangeRule WHERE family_id=?`).bind(familyId).first<any>();
   if (!ex) return c.json({ ok:false, error:'exchange_rule_missing' }, 400);
 
@@ -1954,6 +2045,17 @@ app.get('/achievements', async (c) => {
   const kidFam = await c.env.DB.prepare(`SELECT family_id FROM KidProfile WHERE user_id=?`).bind(kidId).first<any>();
   if (!kidFam || kidFam.family_id !== fam) return c.json({ ok:false, error:'wrong_family' }, 403);
 
+  // Check paywall: Achievements are premium-only
+  const limits = await getSubscriptionLimits(c, fam);
+  if (!limits.hasAchievements) {
+    return c.json({ 
+      ok: false, 
+      error: 'premium_required',
+      message: 'Achievements are a Premium feature. Upgrade to Premium to view badges and stats.',
+      upgradeRequired: true
+    }, 403);
+  }
+
   const stats = await c.env.DB.prepare(`SELECT * FROM KidStats WHERE kid_user_id=?`).bind(kidId).first<any>();
   const awards = await c.env.DB.prepare(`
     SELECT A.key, A.title, A.description, A.icon, B.awarded_at, B.meta_json
@@ -2118,14 +2220,71 @@ app.post('/stripe/webhook', async (c) => {
     const session = event.data.object as Stripe.Checkout.Session;
     const userId = session.metadata?.userId;
     if (userId) {
-      // TODO: Store subscription in database
+      const familyId = await getUserFamilyId(c, userId);
+      if (familyId) {
+        // Get subscription from Stripe
+        const subscriptionId = session.subscription as string;
+        if (subscriptionId) {
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const customerId = subscription.customer as string;
+          const plan = subscription.items.data[0]?.price?.id || null;
+          const status = subscription.status === 'active' ? 'active' : 
+                        subscription.status === 'trialing' ? 'trialing' :
+                        subscription.status === 'past_due' ? 'past_due' :
+                        subscription.status === 'canceled' ? 'canceled' :
+                        subscription.status === 'unpaid' ? 'unpaid' : 'free';
+          
+          await c.env.DB.prepare(`
+            UPDATE Family 
+            SET stripe_customer_id=?, stripe_subscription_id=?, subscription_status=?, subscription_plan=?,
+                subscription_current_period_end=?, subscription_trial_end=?
+            WHERE id=?
+          `).bind(
+            customerId,
+            subscriptionId,
+            status,
+            plan,
+            subscription.current_period_end * 1000, // Convert to milliseconds
+            subscription.trial_end ? subscription.trial_end * 1000 : null,
+            familyId
+          ).run();
+        }
+      }
       await audit(c, { action: 'subscription.created', targetId: userId, meta: { sessionId: session.id } });
     }
   }
   
   if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
     const subscription = event.data.object as Stripe.Subscription;
-    // TODO: Update subscription status in database
+    const customerId = subscription.customer as string;
+    
+    // Find family by customer ID
+    const fam = await c.env.DB.prepare(
+      `SELECT id FROM Family WHERE stripe_customer_id=?`
+    ).bind(customerId).first<{ id: string }>();
+    
+    if (fam) {
+      const status = subscription.status === 'active' ? 'active' : 
+                    subscription.status === 'trialing' ? 'trialing' :
+                    subscription.status === 'past_due' ? 'past_due' :
+                    subscription.status === 'canceled' ? 'canceled' :
+                    subscription.status === 'unpaid' ? 'unpaid' : 'free';
+      const plan = subscription.items.data[0]?.price?.id || null;
+      
+      await c.env.DB.prepare(`
+        UPDATE Family 
+        SET subscription_status=?, subscription_plan=?,
+            subscription_current_period_end=?, subscription_trial_end=?
+        WHERE id=?
+      `).bind(
+        status,
+        plan,
+        subscription.current_period_end * 1000,
+        subscription.trial_end ? subscription.trial_end * 1000 : null,
+        fam.id
+      ).run();
+    }
+    
     await audit(c, { action: 'subscription.updated', meta: { subscriptionId: subscription.id, status: subscription.status } });
   }
   
