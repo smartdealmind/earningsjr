@@ -11,7 +11,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const isPublicPage = ['/', '/register', '/login', '/forgot-password', '/reset-password', '/pricing'].includes(location.pathname);
   const [me, setMe] = useState<any>(null);
   const { actingAsKidId } = useActingAs();
-  const bannerHeight = actingAsKidId ? 48 : 0; // Banner is ~48px tall (compact)
   
   useEffect(() => {
     if (!isHome) {
